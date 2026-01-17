@@ -1,0 +1,550 @@
+edge_cases:
+  metadata:
+    project_id: proj-75602fb4
+    project_name: "Sistema de Alertas B3"
+    created_at: '2026-01-17T04:03:52Z'
+    updated_at: '2026-01-17T04:03:52Z'
+    created_by: requirements-analyst
+    phase: 1
+    version: "1.0.0"
+
+  summary: |
+    Casos de borda identificados para o Sistema de Alertas B3.
+    Cada edge case descreve cenario incomum que o sistema deve tratar.
+
+  # ==========================================================================
+  # DATA INGESTION EDGE CASES
+  # ==========================================================================
+  data_ingestion:
+    - id: EC-DATA-001
+      title: "Alpha Vantage API indisponivel"
+      description: |
+        API de dados de mercado esta fora do ar ou retornando erros.
+
+      scenario: |
+        Usuario tem alertas configurados para PETR4.
+        Scheduler tenta buscar dados mas Alpha Vantage retorna 503.
+
+      expected_behavior:
+        - "Sistema usa dados do cache Redis (se disponiveis)"
+        - "Alerta continua sendo avaliado com ultimos dados conhecidos"
+        - "Flag 'stale_data' e adicionado ao alerta disparado"
+        - "Dashboard exibe indicador de dados potencialmente desatualizados"
+        - "Apos 3 falhas, circuit breaker ativa e retry a cada 5 minutos"
+
+      acceptance_criteria:
+        - "Dados em cache servem como fallback"
+        - "Usuario e notificado sobre qualidade dos dados"
+        - "Sistema nao entra em loop de retries"
+
+      severity: high
+      probability: medium
+      related_stories: [STORY-001, STORY-002, NFR-AVAIL-002]
+
+    - id: EC-DATA-002
+      title: "Rate limit excedido no Alpha Vantage"
+      description: |
+        Sistema excede limite de 5 calls/minuto ou 500 calls/dia.
+
+      scenario: |
+        Scheduler tenta buscar dados de 10 ativos simultaneamente.
+        API retorna HTTP 429 (Too Many Requests).
+
+      expected_behavior:
+        - "Sistema implementa backoff exponencial"
+        - "Retry apos delay: 1s, 2s, 4s, 8s (max 5 tentativas)"
+        - "Prioriza ativos com alertas ativos sobre outros"
+        - "Log de warning para monitoramento"
+        - "Se limite diario atingido, pausa ate proximo dia UTC"
+
+      acceptance_criteria:
+        - "Backoff exponencial funcionando"
+        - "Priorizacao de ativos criticos"
+        - "Metricas de rate limit expostas"
+
+      severity: medium
+      probability: high
+      related_stories: [STORY-001, STORY-003]
+
+    - id: EC-DATA-003
+      title: "Simbolo de ativo inexistente ou renomeado"
+      description: |
+        Usuario configurou alerta para ativo que nao existe mais ou foi renomeado.
+
+      scenario: |
+        Usuario tem alerta para OIBR3 (Oi).
+        Ativo foi deslistado ou teve simbolo alterado.
+
+      expected_behavior:
+        - "API retorna dados vazios para o simbolo"
+        - "Sistema marca alerta como 'ativo_nao_encontrado'"
+        - "Email enviado ao usuario notificando problema"
+        - "Alerta e pausado automaticamente apos 3 dias sem dados"
+        - "Dashboard exibe status do ativo"
+
+      acceptance_criteria:
+        - "Usuario e notificado sobre ativo invalido"
+        - "Alerta nao bloqueia processamento de outros"
+        - "Cleanup automatico de alertas orfaos"
+
+      severity: low
+      probability: low
+      related_stories: [STORY-004, STORY-012]
+
+    - id: EC-DATA-004
+      title: "Feriado ou dia sem pregao"
+      description: |
+        Sistema tenta buscar dados em dia que B3 nao opera.
+
+      scenario: |
+        Dia 25 de dezembro (Natal).
+        Scheduler tenta buscar dados as 10h.
+
+      expected_behavior:
+        - "Sistema consulta calendario de feriados B3"
+        - "Scheduler nao executa em feriados"
+        - "Dashboard exibe 'Mercado fechado'"
+        - "Alertas nao sao avaliados em dias sem pregao"
+
+      acceptance_criteria:
+        - "Calendario de feriados atualizado anualmente"
+        - "Zero calls de API em feriados"
+        - "Interface indica mercado fechado"
+
+      severity: low
+      probability: high
+      related_stories: [STORY-003]
+
+    - id: EC-DATA-005
+      title: "Dados de mercado com valores invalidos"
+      description: |
+        API retorna dados corrompidos ou com valores fora do esperado.
+
+      scenario: |
+        Alpha Vantage retorna preco negativo ou volume de 999999999999.
+
+      expected_behavior:
+        - "Validacao de sanidade em todos os campos"
+        - "Dados invalidos sao descartados"
+        - "Log de erro com detalhes do dado invalido"
+        - "Ultimo dado valido e mantido no cache"
+        - "Alerta de monitoramento para equipe tecnica"
+
+      acceptance_criteria:
+        - "Preco > 0 e < 1000000"
+        - "Volume >= 0 e < 10^12"
+        - "Open/High/Low/Close com relacoes validas (high >= low)"
+
+      severity: medium
+      probability: low
+      related_stories: [STORY-001, STORY-005]
+
+  # ==========================================================================
+  # ALERT ENGINE EDGE CASES
+  # ==========================================================================
+  alert_engine:
+    - id: EC-ALERT-001
+      title: "Alerta dispara multiplas vezes para mesmo evento"
+      description: |
+        Condicao de alerta e atendida em ciclos consecutivos.
+
+      scenario: |
+        ATR de PETR4 sobe para 160% da media.
+        Proximo ciclo, ATR ainda esta em 160%.
+        Sistema nao deve enviar dois alertas identicos.
+
+      expected_behavior:
+        - "Deduplicacao por hash (ativo + tipo + threshold + hora)"
+        - "Cooldown de 1 hora entre alertas do mesmo tipo/ativo"
+        - "Usuario pode configurar cooldown customizado (premium)"
+        - "Segundo disparo so ocorre se valor mudar significativamente (>5%)"
+
+      acceptance_criteria:
+        - "Zero alertas duplicados em janela de 1 hora"
+        - "Cooldown configuravel para premium"
+        - "Hash inclui timestamp truncado (hora)"
+
+      severity: high
+      probability: high
+      related_stories: [STORY-010, STORY-014]
+
+    - id: EC-ALERT-002
+      title: "Usuario free atinge limite de alertas"
+      description: |
+        Usuario free tenta criar mais alertas do que o permitido (3).
+
+      scenario: |
+        Usuario tem 3 alertas ativos.
+        Tenta criar quarto alerta via API ou UI.
+
+      expected_behavior:
+        - "API retorna HTTP 403 com mensagem clara"
+        - "UI exibe modal de upgrade para premium"
+        - "Nao permite criar alerta, mas nao perde configuracao"
+        - "Sugere deletar alerta existente ou fazer upgrade"
+
+      acceptance_criteria:
+        - "Erro amigavel com CTA para upgrade"
+        - "Limite verificado antes de persistir"
+        - "Limite aplicado apenas para alertas ativos (nao pausados)"
+
+      severity: low
+      probability: high
+      related_stories: [STORY-010, STORY-012, STORY-019]
+
+    - id: EC-ALERT-003
+      title: "Alerta configurado com threshold impossivel"
+      description: |
+        Usuario configura threshold que nunca sera atingido.
+
+      scenario: |
+        Usuario configura "alertar quando ATR < 0" (valor impossivel).
+
+      expected_behavior:
+        - "Validacao no frontend rejeita valores invalidos"
+        - "Backend valida novamente (defense in depth)"
+        - "Mensagem de erro explicativa"
+        - "Sugestao de threshold baseado em historico do ativo"
+
+      acceptance_criteria:
+        - "ATR threshold > 0"
+        - "Desvio padrao threshold entre 0 e 100%"
+        - "Threshold nao pode ser > 500% da media historica"
+
+      severity: low
+      probability: low
+      related_stories: [STORY-010, STORY-017]
+
+    - id: EC-ALERT-004
+      title: "Dados insuficientes para calcular metrica"
+      description: |
+        Ativo novo ou com pouco historico nao tem dados para calcular ATR(14).
+
+      scenario: |
+        Novo ETF listado ha 5 dias.
+        Usuario tenta configurar alerta de ATR(14).
+
+      expected_behavior:
+        - "Sistema verifica se ha dados suficientes (14 periodos para ATR)"
+        - "Se insuficiente, retorna erro explicativo"
+        - "Sugere usar metrica alternativa ou aguardar mais dados"
+        - "API retorna 'insufficient_data' no response"
+
+      acceptance_criteria:
+        - "ATR requer minimo 14 dias de dados"
+        - "Desvio padrao requer minimo 30 dias"
+        - "Beta requer minimo 60 dias"
+        - "Erro claro quando dados insuficientes"
+
+      severity: medium
+      probability: medium
+      related_stories: [STORY-005, STORY-006, STORY-008]
+
+    - id: EC-ALERT-005
+      title: "Burst de alertas simultaneos"
+      description: |
+        Evento de mercado dispara muitos alertas ao mesmo tempo.
+
+      scenario: |
+        Black swan event - Ibovespa cai 10% em 1 hora.
+        1000 usuarios tem alertas de alta volatilidade que disparam simultaneamente.
+
+      expected_behavior:
+        - "Queue de notificacoes com rate limiting"
+        - "Prioridade por tipo de notificacao (push > email > SMS)"
+        - "Circuit breaker se provedores de notificacao saturarem"
+        - "Metricas de fila e latencia expostas"
+        - "Alertas agregados por usuario (max 5 alertas por minuto)"
+
+      acceptance_criteria:
+        - "Sistema nao cai sob carga alta"
+        - "Notificacoes sao entregues (eventualmente)"
+        - "Latencia p99 < 60 segundos mesmo em burst"
+        - "Agregacao evita spam ao usuario"
+
+      severity: high
+      probability: low
+      related_stories: [STORY-014, STORY-020, STORY-021]
+
+  # ==========================================================================
+  # NOTIFICATION EDGE CASES
+  # ==========================================================================
+  notifications:
+    - id: EC-NOTIF-001
+      title: "Email bounce ou caixa cheia"
+      description: |
+        Email de notificacao nao pode ser entregue.
+
+      scenario: |
+        Usuario registrou com email temporario ou caixa esta cheia.
+        SendGrid retorna bounce.
+
+      expected_behavior:
+        - "Retry 2x com intervalo de 5 minutos"
+        - "Apos 3 bounces, marca email como invalido"
+        - "Usuario e notificado via push/dashboard"
+        - "Admin alerta para alta taxa de bounce"
+
+      acceptance_criteria:
+        - "Taxa de bounce < 5% geral"
+        - "Emails invalidos sao marcados, nao deletados"
+        - "Usuario pode atualizar email no perfil"
+
+      severity: medium
+      probability: medium
+      related_stories: [STORY-020]
+
+    - id: EC-NOTIF-002
+      title: "Push notification nao entregue"
+      description: |
+        Browser ou dispositivo nao recebe push.
+
+      scenario: |
+        Usuario desabilitou notificacoes no browser.
+        Service worker nao consegue entregar push.
+
+      expected_behavior:
+        - "Fallback para email se push falhar"
+        - "Indicador no dashboard de 'push desabilitado'"
+        - "Guia para usuario habilitar notificacoes"
+        - "Log de falhas para analise"
+
+      acceptance_criteria:
+        - "Fallback automatico para canal secundario"
+        - "Usuario informado sobre problema"
+        - "Metricas de entrega por canal"
+
+      severity: low
+      probability: medium
+      related_stories: [STORY-021]
+
+    - id: EC-NOTIF-003
+      title: "SMS para numero invalido ou internacional"
+      description: |
+        Numero de telefone cadastrado e invalido ou fora do Brasil.
+
+      scenario: |
+        Usuario premium cadastra numero +1 (EUA) ou numero inexistente.
+
+      expected_behavior:
+        - "Validacao de formato brasileiro (+55 XX XXXXX-XXXX)"
+        - "Verificacao via codigo SMS antes de ativar"
+        - "Numeros internacionais rejeitados (MVP scope Brasil)"
+        - "Custo de SMS falho nao e cobrado do usuario"
+
+      acceptance_criteria:
+        - "Apenas numeros brasileiros aceitos"
+        - "Verificacao obrigatoria antes de ativar canal"
+        - "Erro claro para formatos invalidos"
+
+      severity: low
+      probability: low
+      related_stories: [STORY-022]
+
+  # ==========================================================================
+  # USER MANAGEMENT EDGE CASES
+  # ==========================================================================
+  user_management:
+    - id: EC-USER-001
+      title: "Usuario deleta conta mas tem assinatura ativa"
+      description: |
+        Usuario premium solicita exclusao de conta (LGPD) durante vigencia da assinatura.
+
+      scenario: |
+        Usuario pagou assinatura anual.
+        Apos 2 meses, solicita exclusao de conta.
+
+      expected_behavior:
+        - "Confirmar intencao com warning sobre perda de acesso"
+        - "Cancelar renovacao automatica"
+        - "Manter acesso ate fim do periodo pago (opcional)"
+        - "Deletar dados pessoais imediatamente"
+        - "Manter registros financeiros por 5 anos (obrigacao fiscal)"
+
+      acceptance_criteria:
+        - "Direito de exclusao LGPD respeitado"
+        - "Dados pessoais anonimizados"
+        - "Historico financeiro mantido (anonimizado)"
+        - "Sem reembolso automatico (politica clara nos termos)"
+
+      severity: medium
+      probability: low
+      related_stories: [STORY-018, NFR-COMP-001]
+
+    - id: EC-USER-002
+      title: "Downgrade de premium para free"
+      description: |
+        Usuario cancela assinatura premium e volta para tier free.
+
+      scenario: |
+        Usuario premium com 20 alertas e 50 ativos na watchlist.
+        Assinatura expira e tier volta para free.
+
+      expected_behavior:
+        - "Notificar usuario 7 dias antes da expiracao"
+        - "Ao expirar: pausar alertas alem do limite (mantendo os mais antigos ativos)"
+        - "Watchlist: manter 5 ativos mais recentes, pausar resto"
+        - "Metricas premium (Bollinger, Beta) nao exibidas, mas dados mantidos"
+        - "Alerta de 'upgrade para recuperar acesso'"
+
+      acceptance_criteria:
+        - "Transicao sem perda de dados"
+        - "Alertas pausados podem ser reativados com upgrade"
+        - "Usuario escolhe quais alertas manter ativos"
+
+      severity: medium
+      probability: medium
+      related_stories: [STORY-012, STORY-015, STORY-019]
+
+    - id: EC-USER-003
+      title: "Tentativa de login com credenciais de conta deletada"
+      description: |
+        Usuario que deletou conta tenta fazer login.
+
+      scenario: |
+        Usuario deletou conta ha 1 mes.
+        Tenta fazer login com mesmo email/senha.
+
+      expected_behavior:
+        - "Login falha com 'conta nao encontrada'"
+        - "Nao revelar se email existia (prevenir enumeracao)"
+        - "Oferecer opcao de criar nova conta"
+        - "Dados anteriores nao podem ser recuperados"
+
+      acceptance_criteria:
+        - "Mensagem generica de erro"
+        - "Opcao de registro disponivel"
+        - "Nenhum dado anterior acessivel"
+
+      severity: low
+      probability: low
+      related_stories: [STORY-018, NFR-COMP-001]
+
+    - id: EC-USER-004
+      title: "Multiplas sessoes simultaneas"
+      description: |
+        Usuario logado em multiplos dispositivos/browsers.
+
+      scenario: |
+        Usuario logado no celular e no computador.
+        Tenta criar alertas de ambos simultaneamente.
+
+      expected_behavior:
+        - "Permitir multiplas sessoes (nao e banco)"
+        - "Refresh token independente por dispositivo"
+        - "Operacoes sao sincronizadas (eventual consistency)"
+        - "Dashboard atualiza automaticamente em todos os dispositivos"
+
+      acceptance_criteria:
+        - "Sem conflitos em operacoes simultaneas"
+        - "Ultimo write wins para conflitos"
+        - "Logout de dispositivo nao afeta outros"
+
+      severity: low
+      probability: medium
+      related_stories: [STORY-018]
+
+  # ==========================================================================
+  # CALCULATION EDGE CASES
+  # ==========================================================================
+  calculations:
+    - id: EC-CALC-001
+      title: "Divisao por zero em calculos de volatilidade"
+      description: |
+        Calculo de metrica resulta em divisao por zero.
+
+      scenario: |
+        Ativo com preco constante (sem variacao) por 14 dias.
+        Variancia = 0, calculo de desvio padrao falha.
+
+      expected_behavior:
+        - "Tratar variancia = 0 como caso especial"
+        - "Retornar volatilidade = 0 (ativo sem movimento)"
+        - "Flag 'no_volatility' para UI exibir contexto"
+        - "Nao bloquear calculo de outras metricas"
+
+      acceptance_criteria:
+        - "Nenhuma excecao de divisao por zero"
+        - "Valores sao tratados, nao propagam NaN/Infinity"
+        - "Metricas independentes calculadas separadamente"
+
+      severity: medium
+      probability: low
+      related_stories: [STORY-005, STORY-006, STORY-007]
+
+    - id: EC-CALC-002
+      title: "Gap de dados no historico"
+      description: |
+        Historico do ativo tem dias sem dados (suspensao, erro de fonte).
+
+      scenario: |
+        PETR4 ficou 3 dias sem dados (suspensao de negociacao).
+        ATR(14) precisa de 14 dias consecutivos.
+
+      expected_behavior:
+        - "Interpolar dias faltantes usando ultimo preco conhecido"
+        - "Ou: ignorar dias sem dados e usar 14 dias com dados"
+        - "Flag 'data_gaps' na resposta da API"
+        - "Documentar abordagem escolhida"
+
+      acceptance_criteria:
+        - "Calculo nao falha por gaps"
+        - "Metodo de interpolacao documentado"
+        - "Usuario informado sobre qualidade dos dados"
+
+      severity: low
+      probability: medium
+      related_stories: [STORY-005, STORY-006]
+
+    - id: EC-CALC-003
+      title: "Overflow numerico em calculos"
+      description: |
+        Valores muito grandes ou pequenos causam overflow.
+
+      scenario: |
+        Ativo com preco muito alto (1.000.000) ou muito baixo (0.001).
+        Calculos de variancia podem estourar limites de float.
+
+      expected_behavior:
+        - "Usar Decimal para precisao financeira"
+        - "Normalizar valores antes de calculos"
+        - "Validar range de valores de entrada"
+        - "Log de warning para valores extremos"
+
+      acceptance_criteria:
+        - "Precisao de 8 casas decimais"
+        - "Range suportado: 0.0001 a 10.000.000"
+        - "Overflow tratado como erro, nao como silently wrong"
+
+      severity: low
+      probability: low
+      related_stories: [STORY-005, STORY-006, STORY-007, STORY-008]
+
+  # ==========================================================================
+  # SUMMARY
+  # ==========================================================================
+  summary:
+    total_edge_cases: 21
+    by_category:
+      data_ingestion: 5
+      alert_engine: 5
+      notifications: 3
+      user_management: 4
+      calculations: 3
+
+    high_severity:
+      - EC-DATA-001  # Alpha Vantage indisponivel
+      - EC-ALERT-001 # Alertas duplicados
+      - EC-ALERT-005 # Burst de alertas
+
+    high_probability:
+      - EC-DATA-002  # Rate limit excedido
+      - EC-DATA-004  # Feriado/dia sem pregao
+      - EC-ALERT-001 # Alertas duplicados
+      - EC-ALERT-002 # Limite de alertas free
+
+    test_coverage_priority: |
+      1. High Severity + High Probability (nenhum)
+      2. High Severity (EC-DATA-001, EC-ALERT-001, EC-ALERT-005)
+      3. High Probability (EC-DATA-002, EC-DATA-004, EC-ALERT-002)
+      4. Demais por ordem de probabilidade

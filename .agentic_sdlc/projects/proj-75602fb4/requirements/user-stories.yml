@@ -1,0 +1,1161 @@
+user_stories:
+  metadata:
+    project_id: proj-75602fb4
+    project_name: "Sistema de Alertas B3"
+    created_at: '2026-01-17T04:02:18Z'
+    updated_at: '2026-01-17T04:02:18Z'
+    created_by: requirements-analyst
+    phase: 1
+    version: "1.0.0"
+    total_stories: 23
+
+  summary: |
+    User stories detalhadas para o Sistema de Alertas B3, organizadas por epico.
+    Cada story segue o formato "Como [persona], quero [acao], para [beneficio]"
+    com criterios de aceite testaveis.
+
+  # ==========================================================================
+  # EPIC-001: Ingestao de Dados de Mercado
+  # ==========================================================================
+  epic_001_stories:
+    - id: STORY-001
+      epic_id: EPIC-001
+      title: "Conectar com Alpha Vantage API"
+      persona: "Sistema"
+      story: |
+        Como sistema, preciso conectar com a Alpha Vantage API para obter
+        dados OHLC de ativos da B3 com simbolo .SAO.
+      benefit: |
+        Para ter a fonte de dados necessaria para calcular metricas de volatilidade.
+
+      priority: critical
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-001-1
+          criterion: "Sistema obtem API key do ambiente (variavel de ambiente)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-001-2
+          criterion: "Sistema faz request para endpoint TIME_SERIES_DAILY com simbolo .SAO"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-001-3
+          criterion: "Sistema parseia resposta JSON corretamente (open, high, low, close, volume)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-001-4
+          criterion: "Sistema trata rate limit (429) com retry exponencial"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-001-5
+          criterion: "Sistema loga erros de conexao e resposta invalida"
+          testable: true
+          test_type: "unit"
+
+      technical_notes: |
+        - Usar HttpClient com Polly para resiliencia
+        - Rate limit: 5 calls/min, 500 calls/dia
+        - Simbolos B3: {TICKER}.SAO (ex: PETR4.SAO, VALE3.SAO)
+        - Endpoint: https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}
+
+      dependencies: []
+      tags: ["api", "integration", "mvp"]
+
+    - id: STORY-002
+      epic_id: EPIC-001
+      title: "Implementar cache Redis para dados de mercado"
+      persona: "Sistema"
+      story: |
+        Como sistema, preciso armazenar dados de mercado em cache Redis
+        para reduzir chamadas a API e melhorar performance.
+      benefit: |
+        Para respeitar rate limits da API e reduzir latencia de consultas.
+
+      priority: critical
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-002-1
+          criterion: "Dados OHLC sao armazenados com TTL de 60 segundos (intraday)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-002-2
+          criterion: "Dados historicos (diarios) sao armazenados com TTL de 24 horas"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-002-3
+          criterion: "Cache hit retorna dados em < 10ms"
+          testable: true
+          test_type: "performance"
+
+        - id: AC-002-4
+          criterion: "Cache miss dispara busca na API e popula cache"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-002-5
+          criterion: "Metricas de hit/miss ratio sao expostas para monitoramento"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Key pattern: "ohlc:{symbol}:{interval}" (ex: ohlc:PETR4:1d)
+        - Usar Redis Shared Infrastructure (ver ~/.local/services/)
+        - Considerar Redis Streams para dados intraday futuros
+
+      dependencies:
+        - STORY-001
+      tags: ["cache", "redis", "performance", "mvp"]
+
+    - id: STORY-003
+      epic_id: EPIC-001
+      title: "Scheduler de ingestao de dados"
+      persona: "Sistema"
+      story: |
+        Como sistema, preciso executar ingestao de dados periodicamente
+        respeitando horario de pregao (10h-17h BRT) e rate limits.
+      benefit: |
+        Para manter dados atualizados durante horario de mercado sem exceder limites da API.
+
+      priority: high
+      story_points: 3
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-003-1
+          criterion: "Scheduler executa ingestao a cada 5 minutos durante pregao (10h-17h BRT)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-003-2
+          criterion: "Scheduler pausa automaticamente fora do horario de pregao"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-003-3
+          criterion: "Scheduler respeita rate limit de 5 calls/min (batch de 5 ativos por ciclo)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-003-4
+          criterion: "Scheduler prioriza ativos com alertas ativos sobre outros"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-003-5
+          criterion: "Falhas de ingestao sao registradas e nao bloqueiam proximos ciclos"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Usar Hangfire ou Quartz.NET para scheduling
+        - Timezone: America/Sao_Paulo (BRT)
+        - Feriados B3 devem pausar scheduler (consultar calendario)
+        - Metricas: tempo de ciclo, ativos processados, falhas
+
+      dependencies:
+        - STORY-001
+        - STORY-002
+      tags: ["scheduler", "background-job", "mvp"]
+
+    - id: STORY-004
+      epic_id: EPIC-001
+      title: "Lista de ativos suportados (watchable assets)"
+      persona: "Sistema"
+      story: |
+        Como sistema, preciso manter lista de ativos da B3 disponiveis
+        para monitoramento com metadados (nome, setor, tipo).
+      benefit: |
+        Para permitir que usuarios busquem e selecionem ativos para monitorar.
+
+      priority: medium
+      story_points: 3
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-004-1
+          criterion: "Sistema possui lista de pelo menos 100 ativos principais (IBOV + principais FIIs)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-004-2
+          criterion: "Cada ativo tem: simbolo, nome, setor, tipo (acao, FII, ETF)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-004-3
+          criterion: "API expoe endpoint GET /api/v1/assets com paginacao"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-004-4
+          criterion: "API permite busca por simbolo ou nome (case-insensitive)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-004-5
+          criterion: "Lista pode ser atualizada sem deploy (seed via database ou config)"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Seed inicial: top 50 IBOV + top 50 FIIs por liquidez
+        - Dados de setor/tipo podem vir de scraping B3 ou API externa
+        - Considerar cache da lista com TTL de 24h
+
+      dependencies: []
+      tags: ["assets", "api", "mvp"]
+
+  # ==========================================================================
+  # EPIC-002: Calculo de Metricas de Volatilidade
+  # ==========================================================================
+  epic_002_stories:
+    - id: STORY-005
+      epic_id: EPIC-002
+      title: "Calcular ATR (Average True Range)"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero ver o ATR(14) de um ativo
+        para entender a volatilidade diaria em valor absoluto (R$).
+      benefit: |
+        Para definir stop-loss e sizing de posicao baseado em volatilidade real.
+
+      priority: critical
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-005-1
+          criterion: "ATR calculado com periodo de 14 dias (configuravel para premium)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-005-2
+          criterion: "Formula correta: TR = max(high-low, |high-prev_close|, |low-prev_close|)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-005-3
+          criterion: "ATR = SMMA(TR, 14) usando media movel suavizada"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-005-4
+          criterion: "API retorna ATR em R$ e ATRP em % (ATR/close * 100)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-005-5
+          criterion: "Validacao contra calculo oficial Alpha Vantage (desvio < 0.1%)"
+          testable: true
+          test_type: "validation"
+
+      technical_notes: |
+        - Alpha Vantage fornece ATR pre-calculado (usar para validacao)
+        - Implementar calculo proprio para flexibilidade
+        - Cache resultado com TTL de 60 segundos
+        - Historico de 30 dias de ATR para comparacao temporal
+
+      dependencies:
+        - STORY-001
+        - STORY-002
+      tags: ["volatility", "atr", "calculation", "mvp"]
+
+    - id: STORY-006
+      epic_id: EPIC-002
+      title: "Calcular Desvio Padrao Historico"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero ver o desvio padrao historico de um ativo
+        para comparar volatilidade entre diferentes ativos de forma normalizada.
+      benefit: |
+        Para identificar quais ativos estao mais volateis que o normal.
+
+      priority: high
+      story_points: 3
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-006-1
+          criterion: "Desvio padrao calculado sobre retornos logaritmicos de 30 dias"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-006-2
+          criterion: "Formula: r(t) = ln(P(t)/P(t-1)), sigma = sqrt(variance(r))"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-006-3
+          criterion: "API retorna desvio diario e anualizado (sigma * sqrt(252))"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-006-4
+          criterion: "API retorna percentil historico (ex: percentil 85 = mais volatil que 85% do historico)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-006-5
+          criterion: "Validacao contra dados oficiais B3 quando disponiveis"
+          testable: true
+          test_type: "validation"
+
+      technical_notes: |
+        - Usar retornos logaritmicos, nao aritmeticos
+        - 252 dias uteis/ano para anualizacao
+        - Percentil calculado sobre 1 ano de historico
+
+      dependencies:
+        - STORY-005
+      tags: ["volatility", "stddev", "calculation", "mvp"]
+
+    - id: STORY-007
+      epic_id: EPIC-002
+      title: "Calcular Bollinger Bands (Premium)"
+      persona: "Trader Premium"
+      story: |
+        Como trader premium, quero ver as Bollinger Bands de um ativo
+        para identificar squeeze e potenciais breakouts.
+      benefit: |
+        Para antecipar movimentos fortes quando volatilidade esta comprimida.
+
+      priority: medium
+      story_points: 5
+      tier: ["premium"]
+
+      acceptance_criteria:
+        - id: AC-007-1
+          criterion: "Bollinger Bands calculadas: SMA(20) +/- 2*sigma"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-007-2
+          criterion: "API retorna: upper_band, middle_band, lower_band, percent_b, bandwidth"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-007-3
+          criterion: "Percent_B = (preco - lower) / (upper - lower)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-007-4
+          criterion: "Bandwidth = (upper - lower) / middle * 100"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-007-5
+          criterion: "Squeeze detectado quando bandwidth < threshold historico (percentil 10)"
+          testable: true
+          test_type: "unit"
+
+      technical_notes: |
+        - Parametros customizaveis para premium: periodo (10-50), desvios (1-3)
+        - Squeeze threshold: bandwidth no percentil 10 dos ultimos 100 dias
+        - Alpha Vantage fornece Bollinger pre-calculado (validacao)
+
+      dependencies:
+        - STORY-006
+      tags: ["volatility", "bollinger", "premium", "calculation"]
+
+    - id: STORY-008
+      epic_id: EPIC-002
+      title: "Calcular Beta vs Ibovespa (Premium)"
+      persona: "Investidor Premium"
+      story: |
+        Como investidor premium, quero ver o Beta de um ativo em relacao ao Ibovespa
+        para entender risco sistematico e comparar com outros ativos.
+      benefit: |
+        Para diversificar carteira e entender como ativo reage a movimentos de mercado.
+
+      priority: low
+      story_points: 5
+      tier: ["premium"]
+
+      acceptance_criteria:
+        - id: AC-008-1
+          criterion: "Beta calculado com 60 dias de dados (rolling)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-008-2
+          criterion: "Formula: Beta = Cov(R_ativo, R_ibov) / Var(R_ibov)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-008-3
+          criterion: "API retorna: beta, r_squared, interpretation (defensive/neutral/aggressive)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-008-4
+          criterion: "Interpretation: <0.8=defensive, 0.8-1.2=neutral, >1.2=aggressive"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-008-5
+          criterion: "Atualizacao diaria (pos-mercado)"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Dados do Ibovespa via Alpha Vantage: ^BVSP
+        - R-squared indica qualidade do fit (quanto maior, mais confiavel o beta)
+        - Considerar beta setorial no futuro
+
+      dependencies:
+        - STORY-006
+      tags: ["volatility", "beta", "premium", "calculation"]
+
+    - id: STORY-009
+      epic_id: EPIC-002
+      title: "API de metricas de volatilidade"
+      persona: "Sistema Frontend"
+      story: |
+        Como sistema frontend, preciso de API REST para obter metricas
+        de volatilidade de um ou mais ativos.
+      benefit: |
+        Para exibir dados no dashboard e alimentar sistema de alertas.
+
+      priority: high
+      story_points: 3
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-009-1
+          criterion: "GET /api/v1/volatility/{symbol} retorna todas as metricas disponiveis para o tier"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-009-2
+          criterion: "GET /api/v1/volatility?symbols=PETR4,VALE3 retorna batch de metricas"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-009-3
+          criterion: "Response inclui timestamp de calculo para verificar freshness"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-009-4
+          criterion: "Response time < 100ms para single asset, < 500ms para batch de 10"
+          testable: true
+          test_type: "performance"
+
+        - id: AC-009-5
+          criterion: "Autenticacao JWT obrigatoria, tier verificado no token"
+          testable: true
+          test_type: "security"
+
+      technical_notes: |
+        - OpenAPI 3.0 spec para documentacao
+        - Rate limit: 60 requests/min para free, 600 para premium
+        - CORS configurado para dominio do frontend
+
+      dependencies:
+        - STORY-005
+        - STORY-006
+      tags: ["api", "rest", "mvp"]
+
+  # ==========================================================================
+  # EPIC-003: Sistema de Alertas
+  # ==========================================================================
+  epic_003_stories:
+    - id: STORY-010
+      epic_id: EPIC-003
+      title: "Configurar alerta de alta volatilidade (ATR)"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero configurar alerta quando ATR de um ativo
+        ultrapassar threshold relativo a media historica.
+      benefit: |
+        Para ser notificado quando volatilidade aumentar significativamente.
+
+      priority: critical
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-010-1
+          criterion: "Usuario pode criar alerta: 'Notificar quando ATR > X% da media de 20 dias'"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-010-2
+          criterion: "Threshold default: 150% (ATR 50% acima da media)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-010-3
+          criterion: "Usuario pode escolher entre: >X%, <X%, cruza acima, cruza abaixo"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-010-4
+          criterion: "Alerta disparado em < 30 segundos apos condicao ser atendida"
+          testable: true
+          test_type: "performance"
+
+        - id: AC-010-5
+          criterion: "Alerta inclui: simbolo, valor ATR atual, media historica, % variacao"
+          testable: true
+          test_type: "unit"
+
+      technical_notes: |
+        - Cooldown de 1 hora entre alertas do mesmo tipo para mesmo ativo
+        - Limite de 3 alertas ativos para free tier, ilimitado para premium
+        - Persistir configuracao de alertas em PostgreSQL
+
+      dependencies:
+        - STORY-005
+        - STORY-009
+      tags: ["alerts", "atr", "rules", "mvp"]
+
+    - id: STORY-011
+      epic_id: EPIC-003
+      title: "Configurar alerta de baixa volatilidade (squeeze)"
+      persona: "Trader"
+      story: |
+        Como trader, quero ser alertado quando volatilidade de um ativo
+        estiver muito baixa (potencial de movimento forte iminente).
+      benefit: |
+        Para identificar oportunidades de breakout antes que ocorram.
+
+      priority: high
+      story_points: 3
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-011-1
+          criterion: "Usuario pode criar alerta: 'Notificar quando ATR < X% da media de 20 dias'"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-011-2
+          criterion: "Threshold default: 50% (ATR 50% abaixo da media)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-011-3
+          criterion: "Para premium: alerta de Bollinger Squeeze (bandwidth < percentil 10)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-011-4
+          criterion: "Alerta inclui sugestao: 'Volatilidade baixa - potencial breakout'"
+          testable: true
+          test_type: "unit"
+
+      technical_notes: |
+        - Combinar com volume para maior confianca (futuro)
+        - Bollinger Squeeze mais preciso que ATR para detectar contracao
+
+      dependencies:
+        - STORY-010
+      tags: ["alerts", "squeeze", "rules", "mvp"]
+
+    - id: STORY-012
+      epic_id: EPIC-003
+      title: "Gerenciar alertas ativos"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero ver, editar e deletar meus alertas ativos
+        para manter minha lista de monitoramento organizada.
+      benefit: |
+        Para ter controle total sobre quais alertas estao configurados.
+
+      priority: high
+      story_points: 3
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-012-1
+          criterion: "GET /api/v1/alerts retorna lista de alertas do usuario"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-012-2
+          criterion: "PUT /api/v1/alerts/{id} permite editar threshold e canais"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-012-3
+          criterion: "DELETE /api/v1/alerts/{id} remove alerta"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-012-4
+          criterion: "POST /api/v1/alerts/{id}/pause pausa alerta temporariamente"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-012-5
+          criterion: "UI exibe status de cada alerta: ativo, pausado, disparado"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Soft delete para manter historico
+        - Limit de alertas por tier verificado no POST
+        - Validacao de ownership em todas as operacoes
+
+      dependencies:
+        - STORY-010
+      tags: ["alerts", "crud", "api", "mvp"]
+
+    - id: STORY-013
+      epic_id: EPIC-003
+      title: "Historico de alertas disparados"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero ver historico de alertas que foram disparados
+        para analisar eficacia e ajustar thresholds.
+      benefit: |
+        Para aprender com alertas passados e melhorar configuracoes futuras.
+
+      priority: medium
+      story_points: 3
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-013-1
+          criterion: "GET /api/v1/alerts/history retorna alertas disparados"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-013-2
+          criterion: "Free tier: historico de 7 dias"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-013-3
+          criterion: "Premium tier: historico de 90 dias"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-013-4
+          criterion: "Cada registro inclui: timestamp, ativo, tipo, valor que disparou, acao tomada"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-013-5
+          criterion: "Filtro por ativo, tipo de alerta, periodo"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Particionar tabela por data para performance
+        - Considerar export CSV para premium
+        - Metricas agregadas: taxa de acerto (se usuario marcar feedback)
+
+      dependencies:
+        - STORY-012
+      tags: ["alerts", "history", "analytics"]
+
+    - id: STORY-014
+      epic_id: EPIC-003
+      title: "Engine de avaliacao de regras em tempo real"
+      persona: "Sistema"
+      story: |
+        Como sistema, preciso avaliar regras de alertas em tempo real
+        quando novos dados de mercado chegam.
+      benefit: |
+        Para garantir que alertas sejam disparados com latencia minima.
+
+      priority: critical
+      story_points: 8
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-014-1
+          criterion: "Engine processa todos os alertas ativos em < 5 segundos por ciclo"
+          testable: true
+          test_type: "performance"
+
+        - id: AC-014-2
+          criterion: "Engine escala para 10.000 alertas ativos simultaneos"
+          testable: true
+          test_type: "load"
+
+        - id: AC-014-3
+          criterion: "Zero alertas duplicados (dedup por hash de evento)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-014-4
+          criterion: "Alertas sao enfileirados para processamento assincrono"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-014-5
+          criterion: "Metricas expostas: alertas avaliados/s, latencia p99, fila backlog"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Usar Redis Streams ou RabbitMQ para fila de alertas
+        - Batch processing de regras similares para eficiencia
+        - Circuit breaker se sistema de notificacao estiver lento
+
+      dependencies:
+        - STORY-010
+        - STORY-011
+      tags: ["alerts", "engine", "real-time", "mvp"]
+
+  # ==========================================================================
+  # EPIC-004: Dashboard
+  # ==========================================================================
+  epic_004_stories:
+    - id: STORY-015
+      epic_id: EPIC-004
+      title: "Watchlist de ativos"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero manter uma lista de ativos favoritos
+        com metricas de volatilidade visiveis de relance.
+      benefit: |
+        Para monitorar rapidamente os ativos que me interessam.
+
+      priority: high
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-015-1
+          criterion: "Usuario pode adicionar/remover ativos da watchlist"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-015-2
+          criterion: "Free tier: limite de 5 ativos na watchlist"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-015-3
+          criterion: "Premium tier: ativos ilimitados"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-015-4
+          criterion: "Watchlist exibe: simbolo, preco atual, ATR, desvio padrao, variacao diaria"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-015-5
+          criterion: "Dados atualizados automaticamente a cada 60 segundos"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - WebSocket para updates em tempo real (futuro)
+        - Persistir watchlist em PostgreSQL vinculada ao usuario
+        - Ordenacao customizavel (por simbolo, volatilidade, etc.)
+
+      dependencies:
+        - STORY-009
+      tags: ["dashboard", "watchlist", "frontend", "mvp"]
+
+    - id: STORY-016
+      epic_id: EPIC-004
+      title: "Grafico de volatilidade historica"
+      persona: "Trader"
+      story: |
+        Como trader, quero ver grafico de volatilidade historica de um ativo
+        para identificar padroes e tendencias.
+      benefit: |
+        Para tomar decisoes baseadas em contexto historico, nao apenas ponto atual.
+
+      priority: medium
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-016-1
+          criterion: "Grafico exibe ATR dos ultimos 30 dias (free) / 1 ano (premium)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-016-2
+          criterion: "Linha de media movel de 20 periodos sobrepostas"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-016-3
+          criterion: "Zonas de alta/baixa volatilidade coloridas (verde/vermelho)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-016-4
+          criterion: "Tooltip ao hover mostra valores exatos"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-016-5
+          criterion: "Responsivo: funciona em mobile e desktop"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Usar Chart.js ou Recharts para graficos
+        - Lazy loading de dados historicos
+        - Export PNG para premium
+
+      dependencies:
+        - STORY-015
+      tags: ["dashboard", "charts", "visualization"]
+
+    - id: STORY-017
+      epic_id: EPIC-004
+      title: "Formulario de configuracao de alertas"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero configurar alertas via interface intuitiva
+        sem precisar entender formulas matematicas.
+      benefit: |
+        Para criar alertas rapidamente mesmo sem conhecimento tecnico profundo.
+
+      priority: high
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-017-1
+          criterion: "Formulario wizard de 3 passos: selecionar ativo > tipo de alerta > threshold"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-017-2
+          criterion: "Tipo de alerta apresentado em linguagem simples (ex: 'Volatilidade alta')"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-017-3
+          criterion: "Threshold com slider e preview do valor resultante"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-017-4
+          criterion: "Validacao em tempo real (limite de alertas, ativo ja monitorado)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-017-5
+          criterion: "Confirmacao com resumo antes de salvar"
+          testable: true
+          test_type: "unit"
+
+      technical_notes: |
+        - React Hook Form para validacao
+        - Preview de alerta baseado em dados historicos
+        - Sugestoes de threshold baseadas em estatisticas do ativo
+
+      dependencies:
+        - STORY-012
+      tags: ["dashboard", "forms", "ux", "mvp"]
+
+    - id: STORY-018
+      epic_id: EPIC-004
+      title: "Autenticacao e registro de usuarios"
+      persona: "Visitante"
+      story: |
+        Como visitante, quero criar conta e fazer login
+        para ter acesso ao sistema de alertas.
+      benefit: |
+        Para ter experiencia personalizada e alertas salvos.
+
+      priority: critical
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-018-1
+          criterion: "Registro com email e senha (validacao de email obrigatoria)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-018-2
+          criterion: "Login via email/senha ou OAuth (Google)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-018-3
+          criterion: "JWT com refresh token (access: 15min, refresh: 7 dias)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-018-4
+          criterion: "Recuperacao de senha via email"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-018-5
+          criterion: "Pagina de perfil com opcao de deletar conta (LGPD)"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Usar Keycloak compartilhado ou Identity Server
+        - Consent LGPD no registro
+        - Rate limit em login: 5 tentativas por IP em 15 min
+
+      dependencies: []
+      tags: ["auth", "security", "mvp"]
+
+    - id: STORY-019
+      epic_id: EPIC-004
+      title: "Pagina de upgrade para premium"
+      persona: "Usuario Free"
+      story: |
+        Como usuario free, quero ver beneficios do tier premium
+        e fazer upgrade facilmente.
+      benefit: |
+        Para desbloquear features avancadas quando estiver pronto.
+
+      priority: medium
+      story_points: 3
+      tier: ["free"]
+
+      acceptance_criteria:
+        - id: AC-019-1
+          criterion: "Pagina compara features free vs premium lado a lado"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-019-2
+          criterion: "CTA visivel para upgrade em pontos estrategicos (limite atingido)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-019-3
+          criterion: "Integracao com gateway de pagamento (Stripe ou PagSeguro)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-019-4
+          criterion: "Upgrade imediato apos confirmacao de pagamento"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-019-5
+          criterion: "Email de confirmacao com recibo"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Stripe preferido por simplicidade
+        - Webhook para atualizar tier no banco
+        - Considerar trial de 7 dias para premium
+
+      dependencies:
+        - STORY-018
+      tags: ["monetization", "payments", "conversion"]
+
+  # ==========================================================================
+  # EPIC-005: Notificacoes
+  # ==========================================================================
+  epic_005_stories:
+    - id: STORY-020
+      epic_id: EPIC-005
+      title: "Notificacao por email"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero receber alertas por email
+        para ser notificado mesmo quando nao estou no site.
+      benefit: |
+        Para nao perder alertas importantes.
+
+      priority: critical
+      story_points: 3
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-020-1
+          criterion: "Email enviado em < 60 segundos apos alerta disparar"
+          testable: true
+          test_type: "performance"
+
+        - id: AC-020-2
+          criterion: "Email inclui: simbolo, tipo de alerta, valor atual, threshold configurado"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-020-3
+          criterion: "Link no email abre dashboard no ativo em questao"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-020-4
+          criterion: "Usuario pode desabilitar notificacoes por email"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-020-5
+          criterion: "Taxa de bounce < 5%, SPF/DKIM configurados"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Usar SendGrid ou AWS SES
+        - Template HTML responsivo
+        - Unsubscribe link obrigatorio (CAN-SPAM)
+
+      dependencies:
+        - STORY-014
+      tags: ["notifications", "email", "mvp"]
+
+    - id: STORY-021
+      epic_id: EPIC-005
+      title: "Notificacao push (PWA)"
+      persona: "Investidor"
+      story: |
+        Como investidor, quero receber push notifications no navegador/celular
+        para ver alertas em tempo real.
+      benefit: |
+        Para receber alertas instantaneamente sem abrir email.
+
+      priority: high
+      story_points: 5
+      tier: ["free", "premium"]
+
+      acceptance_criteria:
+        - id: AC-021-1
+          criterion: "Push enviado em < 10 segundos apos alerta disparar"
+          testable: true
+          test_type: "performance"
+
+        - id: AC-021-2
+          criterion: "Push funciona em Chrome, Firefox, Safari (macOS/iOS)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-021-3
+          criterion: "Usuario pode opt-in/opt-out de push notifications"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-021-4
+          criterion: "PWA instalavel no celular com icone na home"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-021-5
+          criterion: "Click no push abre app no contexto correto"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Service Worker para background push
+        - Web Push API com VAPID keys
+        - Fallback para polling se push indisponivel
+
+      dependencies:
+        - STORY-020
+      tags: ["notifications", "push", "pwa", "mvp"]
+
+    - id: STORY-022
+      epic_id: EPIC-005
+      title: "Notificacao por SMS (Premium)"
+      persona: "Trader Premium"
+      story: |
+        Como trader premium, quero receber alertas por SMS
+        para ser notificado mesmo sem internet.
+      benefit: |
+        Para ter redundancia maxima em alertas criticos.
+
+      priority: low
+      story_points: 3
+      tier: ["premium"]
+
+      acceptance_criteria:
+        - id: AC-022-1
+          criterion: "SMS enviado em < 30 segundos apos alerta disparar"
+          testable: true
+          test_type: "performance"
+
+        - id: AC-022-2
+          criterion: "SMS conciso: '{SIMBOLO}: {TIPO} - {VALOR} (AlertasB3)'"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-022-3
+          criterion: "Usuario pode cadastrar numero brasileiro (+55)"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-022-4
+          criterion: "Verificacao de numero via codigo SMS"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-022-5
+          criterion: "Limite de 30 SMS/mes por usuario premium"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Usar Twilio ou Zenvia (melhor para Brasil)
+        - Custo: ~R$ 0.10/SMS, monitorar uso
+        - Opt-in explicito obrigatorio
+
+      dependencies:
+        - STORY-020
+      tags: ["notifications", "sms", "premium"]
+
+    - id: STORY-023
+      epic_id: EPIC-005
+      title: "Notificacao por Telegram (Premium)"
+      persona: "Trader Premium"
+      story: |
+        Como trader premium, quero receber alertas via Telegram
+        para integracao com meu workflow de trading.
+      benefit: |
+        Para centralizar alertas onde ja acompanho outras informacoes.
+
+      priority: low
+      story_points: 3
+      tier: ["premium"]
+
+      acceptance_criteria:
+        - id: AC-023-1
+          criterion: "Notificacao enviada em < 10 segundos via Telegram Bot"
+          testable: true
+          test_type: "performance"
+
+        - id: AC-023-2
+          criterion: "Mensagem formatada com Markdown (bold para simbolo)"
+          testable: true
+          test_type: "unit"
+
+        - id: AC-023-3
+          criterion: "Usuario vincula conta via /start no bot"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-023-4
+          criterion: "Comando /status retorna alertas ativos"
+          testable: true
+          test_type: "integration"
+
+        - id: AC-023-5
+          criterion: "Usuario pode desvincular conta via /stop"
+          testable: true
+          test_type: "integration"
+
+      technical_notes: |
+        - Criar bot via @BotFather
+        - Armazenar chat_id para cada usuario
+        - Considerar grupo/canal para alertas publicos (futuro)
+
+      dependencies:
+        - STORY-020
+      tags: ["notifications", "telegram", "premium"]

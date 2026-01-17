@@ -1,0 +1,303 @@
+epics:
+  metadata:
+    project_id: proj-75602fb4
+    project_name: "Sistema de Alertas B3"
+    created_at: '2026-01-17T04:01:33Z'
+    updated_at: '2026-01-17T04:01:33Z'
+    created_by: requirements-analyst
+    phase: 1
+    version: "1.0.0"
+
+  summary: |
+    Definicao de epicos para o Sistema de Alertas B3 baseado no intake analysis,
+    pesquisa de dominio e decisoes tomadas na Phase 0.
+
+    Total: 5 Epicos
+    Estimativa Total: 8-12 semanas (desenvolvimento completo)
+
+  epic_list:
+    - id: EPIC-001
+      title: "Ingestao de Dados de Mercado"
+      description: |
+        Implementar sistema de captura e armazenamento de dados de mercado da B3
+        via Alpha Vantage API, com cache inteligente e tratamento de rate limits.
+
+      business_value: |
+        Fundacao do sistema - sem dados de mercado, nenhuma outra feature funciona.
+        Dados confiáveis e atualizados sao essenciais para calcular metricas de
+        volatilidade e disparar alertas precisos.
+
+      priority: critical
+      complexity: high
+      estimated_effort: "2-3 semanas"
+
+      dependencies: []
+
+      stakeholders:
+        - role: "Backend Developer"
+          responsibility: "Implementacao"
+        - role: "DevOps"
+          responsibility: "Infraestrutura e monitoramento"
+        - role: "Product Owner"
+          responsibility: "Validacao de cobertura de ativos"
+
+      success_criteria:
+        - "Dados OHLC de ativos B3 sendo coletados via Alpha Vantage"
+        - "Cache Redis funcionando para reduzir calls de API"
+        - "Fallback para dados historicos quando API indisponivel"
+        - "Cobertura minima de 100 ativos principais da B3"
+        - "Latencia de ingestao < 5 segundos por ativo"
+
+      related_adrs:
+        - adr-001
+
+      stories:
+        - STORY-001
+        - STORY-002
+        - STORY-003
+        - STORY-004
+
+      tags:
+        - data-ingestion
+        - alpha-vantage
+        - infrastructure
+        - mvp-critical
+
+    - id: EPIC-002
+      title: "Calculo de Metricas de Volatilidade"
+      description: |
+        Implementar calculos de metricas de volatilidade conforme priorização
+        definida no ADR-003: ATR, Desvio Padrao, Bollinger Bands, Beta.
+
+      business_value: |
+        Core differentiator do produto. Metricas de volatilidade calculadas
+        em tempo real permitem que usuarios tomem decisoes informadas sobre
+        risco e timing de operacoes.
+
+      priority: critical
+      complexity: medium
+      estimated_effort: "2 semanas"
+
+      dependencies:
+        - EPIC-001
+
+      stakeholders:
+        - role: "Backend Developer"
+          responsibility: "Implementacao de calculos"
+        - role: "Data Analyst"
+          responsibility: "Validacao de formulas"
+        - role: "QA"
+          responsibility: "Validacao contra dados oficiais B3"
+
+      success_criteria:
+        - "ATR(14) calculado corretamente para todos os ativos"
+        - "Desvio Padrao (30 dias) calculado e normalizado"
+        - "Bollinger Bands (20, 2) com deteccao de squeeze (premium)"
+        - "Beta vs Ibovespa calculado diariamente (premium)"
+        - "Metricas validadas contra dados oficiais da B3"
+        - "Performance: calculo de todas as metricas em < 1 segundo"
+
+      related_adrs:
+        - adr-002
+        - adr-003
+
+      stories:
+        - STORY-005
+        - STORY-006
+        - STORY-007
+        - STORY-008
+        - STORY-009
+
+      tags:
+        - volatility
+        - metrics
+        - calculations
+        - mvp-critical
+
+    - id: EPIC-003
+      title: "Sistema de Alertas"
+      description: |
+        Implementar engine de alertas que monitora metricas de volatilidade
+        em tempo real e dispara notificacoes quando thresholds sao atingidos.
+
+      business_value: |
+        Principal proposta de valor do produto. Alertas permitem que usuarios
+        sejam notificados imediatamente quando condicoes de mercado mudam,
+        sem necessidade de monitoramento manual constante.
+
+      priority: critical
+      complexity: high
+      estimated_effort: "2-3 semanas"
+
+      dependencies:
+        - EPIC-001
+        - EPIC-002
+
+      stakeholders:
+        - role: "Backend Developer"
+          responsibility: "Engine de regras e processamento"
+        - role: "UX Designer"
+          responsibility: "Fluxo de configuracao de alertas"
+        - role: "Product Owner"
+          responsibility: "Definicao de tipos de alertas"
+
+      success_criteria:
+        - "Usuario pode configurar alertas baseados em ATR e Desvio Padrao (free)"
+        - "Usuario premium pode configurar alertas Bollinger e Beta"
+        - "Alertas disparados em < 30 segundos apos evento"
+        - "Rate limiting de alertas (max 10/dia por usuario free)"
+        - "Historico de alertas acessivel por 7 dias (free) / 90 dias (premium)"
+        - "Zero alertas duplicados para mesmo evento"
+
+      related_adrs:
+        - adr-002
+
+      stories:
+        - STORY-010
+        - STORY-011
+        - STORY-012
+        - STORY-013
+        - STORY-014
+
+      tags:
+        - alerts
+        - rules-engine
+        - real-time
+        - mvp-critical
+
+    - id: EPIC-004
+      title: "Interface de Usuario (Dashboard)"
+      description: |
+        Desenvolver dashboard web (PWA) para visualizacao de metricas,
+        configuracao de alertas e gestao de watchlists.
+
+      business_value: |
+        Interface principal de interacao do usuario com o sistema.
+        Dashboard intuitivo aumenta engajamento e facilita configuracao
+        de alertas, reduzindo churn.
+
+      priority: high
+      complexity: medium
+      estimated_effort: "2-3 semanas"
+
+      dependencies:
+        - EPIC-002
+        - EPIC-003
+
+      stakeholders:
+        - role: "Frontend Developer"
+          responsibility: "Implementacao React/Next.js"
+        - role: "UX Designer"
+          responsibility: "Design e prototipacao"
+        - role: "Product Owner"
+          responsibility: "Priorizacao de features"
+
+      success_criteria:
+        - "Dashboard responsivo (mobile-first PWA)"
+        - "Watchlist de ativos com metricas em tempo real"
+        - "Configuracao de alertas via UI intuitiva"
+        - "Graficos de volatilidade historica"
+        - "Performance: LCP < 2.5s, FID < 100ms"
+        - "Acessibilidade WCAG 2.1 AA"
+
+      related_adrs: []
+
+      stories:
+        - STORY-015
+        - STORY-016
+        - STORY-017
+        - STORY-018
+        - STORY-019
+
+      tags:
+        - frontend
+        - dashboard
+        - pwa
+        - ux
+
+    - id: EPIC-005
+      title: "Notificacoes Multi-Canal"
+      description: |
+        Implementar sistema de delivery de notificacoes via email, push (PWA),
+        e canais premium (SMS, Telegram).
+
+      business_value: |
+        Entrega efetiva de alertas ao usuario. Multiplos canais garantem que
+        o usuario receba a notificacao independente de onde esteja ou qual
+        dispositivo use.
+
+      priority: high
+      complexity: medium
+      estimated_effort: "1-2 semanas"
+
+      dependencies:
+        - EPIC-003
+
+      stakeholders:
+        - role: "Backend Developer"
+          responsibility: "Integracao com providers"
+        - role: "DevOps"
+          responsibility: "Configuracao de servicos"
+        - role: "Product Owner"
+          responsibility: "Definicao de tiers"
+
+      success_criteria:
+        - "Email: delivery em < 60 segundos, taxa de bounce < 5%"
+        - "Push (PWA): delivery em < 10 segundos"
+        - "SMS (premium): delivery em < 30 segundos"
+        - "Telegram (premium): delivery em < 10 segundos"
+        - "Usuario pode configurar preferencias de canal"
+        - "Fallback automatico se canal primario falhar"
+
+      related_adrs:
+        - adr-002
+
+      stories:
+        - STORY-020
+        - STORY-021
+        - STORY-022
+        - STORY-023
+
+      tags:
+        - notifications
+        - email
+        - push
+        - sms
+        - telegram
+
+  dependency_graph: |
+    EPIC-001 (Ingestao de Dados)
+        |
+        v
+    EPIC-002 (Metricas de Volatilidade)
+        |
+        v
+    EPIC-003 (Sistema de Alertas) -----> EPIC-005 (Notificacoes)
+        |
+        v
+    EPIC-004 (Dashboard)
+
+  mvp_scope:
+    included_epics:
+      - EPIC-001
+      - EPIC-002
+      - EPIC-003
+      - EPIC-004
+      - EPIC-005
+
+    mvp_features:
+      free_tier:
+        - "Ingestao de dados de 50 ativos principais"
+        - "ATR(14) e Desvio Padrao (30 dias)"
+        - "Alertas de alta/baixa volatilidade"
+        - "Dashboard basico com watchlist de 5 ativos"
+        - "Notificacoes por email"
+
+      premium_tier:
+        - "Ingestao de dados de todos os ativos B3"
+        - "Bollinger Bands + Beta vs Ibovespa"
+        - "Alertas avancados (squeeze, multi-indicador)"
+        - "Dashboard completo com ativos ilimitados"
+        - "Notificacoes multi-canal (push, SMS, Telegram)"
+
+    estimated_mvp_timeline: "6-8 semanas"

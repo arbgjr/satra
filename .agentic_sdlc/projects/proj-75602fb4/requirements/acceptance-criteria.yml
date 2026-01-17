@@ -1,0 +1,505 @@
+acceptance_criteria:
+  metadata:
+    project_id: proj-75602fb4
+    project_name: "Sistema de Alertas B3"
+    created_at: '2026-01-17T04:04:38Z'
+    updated_at: '2026-01-17T04:04:38Z'
+    created_by: requirements-analyst
+    phase: 1
+    version: "1.0.0"
+
+  summary: |
+    Consolidacao de criterios de aceite testaveis para validacao do MVP.
+    Organizados por epic e priorizados para execucao.
+
+  # ==========================================================================
+  # EPIC-001: INGESTAO DE DADOS
+  # ==========================================================================
+  epic_001_acceptance:
+    epic_id: EPIC-001
+    epic_title: "Ingestao de Dados de Mercado"
+
+    definition_of_done:
+      - "Dados OHLC de 100 ativos B3 sendo coletados automaticamente"
+      - "Cache Redis funcionando com TTL apropriado"
+      - "Scheduler respeitando horario de pregao e rate limits"
+      - "Fallback para dados em cache quando API indisponivel"
+      - "Testes de integracao passando"
+
+    acceptance_tests:
+      - id: AT-001-001
+        title: "Conexao com Alpha Vantage"
+        type: integration
+        preconditions:
+          - "API key valida configurada"
+          - "Rede disponivel"
+        steps:
+          - "Chamar endpoint TIME_SERIES_DAILY com simbolo PETR4.SAO"
+          - "Verificar resposta HTTP 200"
+          - "Verificar campos: open, high, low, close, volume"
+        expected_result: |
+          Dados OHLC de PETR4 retornados com valores numericos validos.
+          Timestamp do ultimo dado e do dia util mais recente.
+        automated: true
+        priority: P0
+
+      - id: AT-001-002
+        title: "Cache Redis popula corretamente"
+        type: integration
+        preconditions:
+          - "Redis rodando"
+          - "Cache vazio"
+        steps:
+          - "Chamar API de volatilidade para PETR4"
+          - "Verificar key ohlc:PETR4:1d no Redis"
+          - "Chamar API novamente"
+          - "Verificar que API nao foi chamada (cache hit)"
+        expected_result: |
+          Primeira chamada popula cache.
+          Segunda chamada usa cache (verificar via metricas ou logs).
+        automated: true
+        priority: P0
+
+      - id: AT-001-003
+        title: "Rate limiting respeitado"
+        type: integration
+        preconditions:
+          - "Rate limit de 5 calls/min configurado"
+        steps:
+          - "Disparar 10 requests simultaneos para API"
+          - "Observar comportamento"
+        expected_result: |
+          Apenas 5 requests executados por minuto.
+          Demais ficam em queue ou retornam erro controlado.
+          Nenhum HTTP 429 da Alpha Vantage.
+        automated: true
+        priority: P0
+
+      - id: AT-001-004
+        title: "Scheduler executa apenas em horario de pregao"
+        type: integration
+        preconditions:
+          - "Ambiente com relogio controlavel (mock time)"
+        steps:
+          - "Configurar relogio para 09:00 BRT (antes do pregao)"
+          - "Verificar que scheduler nao executa"
+          - "Configurar relogio para 10:00 BRT (inicio do pregao)"
+          - "Verificar que scheduler executa"
+          - "Configurar relogio para 18:00 BRT (apos pregao)"
+          - "Verificar que scheduler nao executa"
+        expected_result: |
+          Scheduler ativo apenas entre 10:00 e 17:00 BRT.
+        automated: true
+        priority: P1
+
+      - id: AT-001-005
+        title: "Fallback para cache quando API indisponivel"
+        type: integration
+        preconditions:
+          - "Cache populado com dados de PETR4"
+          - "Alpha Vantage mockado para retornar erro"
+        steps:
+          - "Chamar API de volatilidade para PETR4"
+          - "Verificar que dados sao retornados"
+          - "Verificar flag stale_data ou similar"
+        expected_result: |
+          Dados do cache retornados.
+          Indicador de dados potencialmente desatualizados presente.
+        automated: true
+        priority: P0
+
+  # ==========================================================================
+  # EPIC-002: CALCULO DE METRICAS
+  # ==========================================================================
+  epic_002_acceptance:
+    epic_id: EPIC-002
+    epic_title: "Calculo de Metricas de Volatilidade"
+
+    definition_of_done:
+      - "ATR(14) calculado corretamente para todos os ativos"
+      - "Desvio Padrao (30d) calculado e normalizado"
+      - "Bollinger Bands (premium) funcionando"
+      - "Beta vs Ibovespa (premium) funcionando"
+      - "Validacao contra dados oficiais com desvio < 1%"
+
+    acceptance_tests:
+      - id: AT-002-001
+        title: "Calculo de ATR(14)"
+        type: unit
+        preconditions:
+          - "Dados OHLC de 14+ dias para PETR4"
+        steps:
+          - "Calcular ATR(14) para PETR4"
+          - "Comparar com calculo manual ou Alpha Vantage"
+        expected_result: |
+          ATR calculado com diferenca < 0.1% do valor de referencia.
+          Valor em R$ com 2 casas decimais.
+        automated: true
+        priority: P0
+
+      - id: AT-002-002
+        title: "Calculo de Desvio Padrao (30d)"
+        type: unit
+        preconditions:
+          - "Dados de fechamento de 30+ dias para VALE3"
+        steps:
+          - "Calcular retornos logaritmicos"
+          - "Calcular desvio padrao"
+          - "Anualizar multiplicando por sqrt(252)"
+        expected_result: |
+          Desvio padrao diario e anualizado corretos.
+          Comparacao com dados B3 oficiais quando disponivel.
+        automated: true
+        priority: P0
+
+      - id: AT-002-003
+        title: "Bollinger Bands (20, 2)"
+        type: unit
+        preconditions:
+          - "Dados de fechamento de 20+ dias"
+          - "Usuario tem tier premium"
+        steps:
+          - "Calcular SMA(20)"
+          - "Calcular desvio padrao de 20 periodos"
+          - "Calcular upper = SMA + 2*sigma"
+          - "Calcular lower = SMA - 2*sigma"
+        expected_result: |
+          Bandas superior, media e inferior corretas.
+          percent_b = (preco - lower) / (upper - lower).
+          bandwidth = (upper - lower) / middle * 100.
+        automated: true
+        priority: P1
+
+      - id: AT-002-004
+        title: "API de volatilidade respeita tier"
+        type: integration
+        preconditions:
+          - "Usuario free autenticado"
+          - "Usuario premium autenticado"
+        steps:
+          - "Usuario free chama GET /api/v1/volatility/PETR4"
+          - "Usuario premium chama mesmo endpoint"
+        expected_result: |
+          Usuario free recebe: ATR, desvio padrao.
+          Usuario premium recebe: ATR, desvio padrao, Bollinger, Beta.
+        automated: true
+        priority: P0
+
+      - id: AT-002-005
+        title: "Performance de calculo"
+        type: performance
+        preconditions:
+          - "100 ativos com dados"
+        steps:
+          - "Calcular todas as metricas para 100 ativos"
+          - "Medir tempo total"
+        expected_result: |
+          Todas as metricas calculadas em < 1 segundo.
+          Nenhum timeout ou erro.
+        automated: true
+        priority: P1
+
+  # ==========================================================================
+  # EPIC-003: SISTEMA DE ALERTAS
+  # ==========================================================================
+  epic_003_acceptance:
+    epic_id: EPIC-003
+    epic_title: "Sistema de Alertas"
+
+    definition_of_done:
+      - "Usuario pode criar, editar, deletar alertas"
+      - "Alertas disparados em < 30 segundos"
+      - "Rate limiting de alertas por usuario"
+      - "Historico de alertas acessivel"
+      - "Zero alertas duplicados"
+
+    acceptance_tests:
+      - id: AT-003-001
+        title: "Criar alerta de alta volatilidade"
+        type: integration
+        preconditions:
+          - "Usuario autenticado"
+          - "PETR4 com ATR calculado"
+        steps:
+          - "POST /api/v1/alerts com tipo=alta_volatilidade, ativo=PETR4, threshold=150%"
+          - "Verificar resposta 201 Created"
+          - "GET /api/v1/alerts e verificar alerta na lista"
+        expected_result: |
+          Alerta criado com ID unico.
+          Status = ativo.
+          Campos preenchidos corretamente.
+        automated: true
+        priority: P0
+
+      - id: AT-003-002
+        title: "Alerta dispara quando condicao atendida"
+        type: integration
+        preconditions:
+          - "Alerta configurado: ATR > 150% da media"
+          - "ATR atual = 100% (abaixo do threshold)"
+        steps:
+          - "Simular dados que fazem ATR subir para 160%"
+          - "Aguardar ciclo de avaliacao (< 30s)"
+          - "Verificar que alerta foi disparado"
+        expected_result: |
+          Notificacao enviada ao usuario.
+          Registro em historico de alertas.
+          Timestamp de disparo correto.
+        automated: true
+        priority: P0
+
+      - id: AT-003-003
+        title: "Limite de alertas para usuario free"
+        type: integration
+        preconditions:
+          - "Usuario free com 3 alertas ativos"
+        steps:
+          - "Tentar criar quarto alerta"
+        expected_result: |
+          HTTP 403 Forbidden.
+          Mensagem clara sobre limite atingido.
+          CTA para upgrade no response.
+        automated: true
+        priority: P0
+
+      - id: AT-003-004
+        title: "Deduplicacao de alertas"
+        type: integration
+        preconditions:
+          - "Alerta configurado e disparado"
+          - "Condicao ainda atendida no ciclo seguinte"
+        steps:
+          - "Aguardar 2 ciclos de avaliacao"
+        expected_result: |
+          Apenas 1 notificacao enviada (nao 2).
+          Cooldown de 1 hora respeitado.
+        automated: true
+        priority: P0
+
+      - id: AT-003-005
+        title: "Latencia de alerta < 30 segundos"
+        type: performance
+        preconditions:
+          - "Alerta configurado"
+          - "Metricas de latencia habilitadas"
+        steps:
+          - "Injetar dado que dispara alerta"
+          - "Medir tempo ate notificacao"
+        expected_result: |
+          p95 < 25 segundos.
+          p99 < 30 segundos.
+        automated: true
+        priority: P0
+
+  # ==========================================================================
+  # EPIC-004: DASHBOARD
+  # ==========================================================================
+  epic_004_acceptance:
+    epic_id: EPIC-004
+    epic_title: "Interface de Usuario (Dashboard)"
+
+    definition_of_done:
+      - "Autenticacao funcionando (registro, login, logout)"
+      - "Watchlist com limite por tier"
+      - "Configuracao de alertas via UI"
+      - "PWA instalavel"
+      - "Core Web Vitals atendidos"
+
+    acceptance_tests:
+      - id: AT-004-001
+        title: "Registro de novo usuario"
+        type: e2e
+        preconditions:
+          - "Nenhuma conta com email test@example.com"
+        steps:
+          - "Acessar /register"
+          - "Preencher email, senha, aceitar termos"
+          - "Submeter formulario"
+          - "Verificar email de confirmacao"
+          - "Clicar no link de confirmacao"
+        expected_result: |
+          Conta criada com sucesso.
+          Email de confirmacao enviado.
+          Usuario pode fazer login apos confirmar.
+        automated: true
+        priority: P0
+
+      - id: AT-004-002
+        title: "Adicionar ativo a watchlist"
+        type: e2e
+        preconditions:
+          - "Usuario logado"
+          - "Watchlist vazia"
+        steps:
+          - "Buscar 'PETR4' na barra de busca"
+          - "Clicar em 'Adicionar a watchlist'"
+        expected_result: |
+          PETR4 aparece na watchlist.
+          Metricas (preco, ATR, desvio padrao) exibidas.
+        automated: true
+        priority: P0
+
+      - id: AT-004-003
+        title: "Limite de watchlist para free"
+        type: e2e
+        preconditions:
+          - "Usuario free com 5 ativos na watchlist"
+        steps:
+          - "Tentar adicionar sexto ativo"
+        expected_result: |
+          Modal de upgrade exibido.
+          Ativo nao adicionado.
+          Opcao de remover outro para adicionar.
+        automated: true
+        priority: P1
+
+      - id: AT-004-004
+        title: "Formulario de criacao de alerta"
+        type: e2e
+        preconditions:
+          - "Usuario logado"
+          - "PETR4 na watchlist"
+        steps:
+          - "Clicar em 'Criar alerta' para PETR4"
+          - "Selecionar tipo 'Volatilidade alta'"
+          - "Configurar threshold 150%"
+          - "Confirmar criacao"
+        expected_result: |
+          Wizard de 3 passos funcional.
+          Alerta criado e visivel na lista.
+          Feedback de sucesso exibido.
+        automated: true
+        priority: P0
+
+      - id: AT-004-005
+        title: "Core Web Vitals"
+        type: performance
+        preconditions:
+          - "Pagina principal carregada"
+        steps:
+          - "Executar Lighthouse audit"
+        expected_result: |
+          LCP < 2.5s
+          FID < 100ms
+          CLS < 0.1
+        automated: true
+        priority: P1
+
+  # ==========================================================================
+  # EPIC-005: NOTIFICACOES
+  # ==========================================================================
+  epic_005_acceptance:
+    epic_id: EPIC-005
+    epic_title: "Notificacoes Multi-Canal"
+
+    definition_of_done:
+      - "Email enviado em < 60 segundos"
+      - "Push (PWA) funcionando"
+      - "SMS (premium) funcionando"
+      - "Telegram (premium) funcionando"
+      - "Usuario pode configurar preferencias"
+
+    acceptance_tests:
+      - id: AT-005-001
+        title: "Notificacao por email"
+        type: integration
+        preconditions:
+          - "Usuario com email valido"
+          - "Alerta configurado para disparar"
+        steps:
+          - "Disparar alerta"
+          - "Verificar email enviado"
+        expected_result: |
+          Email recebido em < 60 segundos.
+          Conteudo inclui: simbolo, tipo, valor, link para dashboard.
+          Unsubscribe link presente.
+        automated: true
+        priority: P0
+
+      - id: AT-005-002
+        title: "Push notification (PWA)"
+        type: integration
+        preconditions:
+          - "Usuario com push habilitado no browser"
+          - "Service worker registrado"
+        steps:
+          - "Disparar alerta"
+          - "Verificar push recebido"
+        expected_result: |
+          Push recebido em < 10 segundos.
+          Click no push abre dashboard no contexto.
+        automated: false
+        priority: P1
+        note: "Requer teste manual ou browser automation avancado"
+
+      - id: AT-005-003
+        title: "SMS para premium"
+        type: integration
+        preconditions:
+          - "Usuario premium com telefone verificado"
+        steps:
+          - "Disparar alerta"
+          - "Verificar SMS enviado via Twilio logs"
+        expected_result: |
+          SMS enviado em < 30 segundos.
+          Conteudo conciso: "{SIMBOLO}: {TIPO} - {VALOR}"
+        automated: true
+        priority: P2
+
+      - id: AT-005-004
+        title: "Preferencias de notificacao"
+        type: e2e
+        preconditions:
+          - "Usuario logado"
+        steps:
+          - "Acessar /settings/notifications"
+          - "Desabilitar email, habilitar push"
+          - "Salvar preferencias"
+          - "Disparar alerta"
+        expected_result: |
+          Apenas push enviado, nao email.
+          Preferencias persistidas.
+        automated: true
+        priority: P1
+
+  # ==========================================================================
+  # CONSOLIDATED SUMMARY
+  # ==========================================================================
+  summary:
+    total_acceptance_tests: 24
+    by_priority:
+      P0: 15
+      P1: 7
+      P2: 2
+
+    by_type:
+      unit: 4
+      integration: 14
+      e2e: 5
+      performance: 4
+
+    automation_coverage:
+      automated: 22
+      manual: 2
+
+    mvp_critical_tests: |
+      Testes P0 sao bloqueadores para release do MVP.
+      Devem ser incluidos no pipeline de CI/CD.
+
+      Lista de P0:
+      - AT-001-001: Conexao Alpha Vantage
+      - AT-001-002: Cache Redis
+      - AT-001-003: Rate limiting
+      - AT-001-005: Fallback para cache
+      - AT-002-001: Calculo ATR
+      - AT-002-002: Calculo Desvio Padrao
+      - AT-002-004: API respeita tier
+      - AT-003-001: Criar alerta
+      - AT-003-002: Alerta dispara
+      - AT-003-003: Limite free
+      - AT-003-004: Deduplicacao
+      - AT-003-005: Latencia alerta
+      - AT-004-001: Registro usuario
+      - AT-004-002: Adicionar watchlist
+      - AT-004-004: Formulario alerta
+      - AT-005-001: Email notification
