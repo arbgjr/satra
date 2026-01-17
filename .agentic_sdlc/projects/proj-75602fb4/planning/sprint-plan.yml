@@ -1,0 +1,586 @@
+# =============================================================================
+# Sprint Plan - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 3 - Implementation Planning
+# Created: 2026-01-17T19:15:22Z
+# Author: delivery-planner
+# =============================================================================
+
+sprint_plan:
+  metadata:
+    project_id: proj-75602fb4
+    version: "1.0.0"
+    created_at: "2026-01-17T19:15:22Z"
+    updated_at: "2026-01-17T19:15:22Z"
+    author: delivery-planner
+
+  overview:
+    total_sprints: 7
+    sprint_duration: "1-2 semanas"
+    total_story_points: 191
+    total_estimated_duration: "8-10 semanas"
+    velocity_assumption: 25  # story points per sprint
+
+  # ==========================================================================
+  # SPRINT 0 - INFRASTRUCTURE & SETUP
+  # ==========================================================================
+  sprint_0:
+    name: "Sprint 0 - Infrastructure & Setup"
+    goal: "Preparar repositorio, CI/CD e ambiente de desenvolvimento"
+    duration: "1 semana"
+    start_date: "TBD"
+    end_date: "TBD + 7 dias"
+
+    story_points: 13
+    capacity_used: "52%"
+
+    epics: []  # Setup, nao vinculado a epico
+
+    user_stories: []
+
+    tasks:
+      - TASK-000  # Estrutura repositorio
+      - TASK-001  # Solucao .NET
+      - TASK-002  # Next.js
+      - TASK-003  # Docker Compose
+      - TASK-004  # CI Pipeline
+      - TASK-005  # Dockerfiles
+      - TASK-006  # Terraform
+      - TASK-007  # Observability
+
+    deliverables:
+      - "Repositorio monorepo estruturado"
+      - "Solucao .NET 8 compilando"
+      - "Projeto Next.js 14 funcional"
+      - "Docker Compose para dev local"
+      - "CI pipeline no GitHub Actions"
+      - "Dockerfiles de producao"
+      - "Terraform base para Azure"
+
+    acceptance_criteria:
+      - "make build funciona localmente"
+      - "docker-compose up inicia todos os servicos"
+      - "CI pipeline verde em PR"
+      - "README com instrucoes de setup"
+
+    risks:
+      - description: "Problemas de configuracao com shared services"
+        mitigation: "Testar conexao com PostgreSQL e Redis shared cedo"
+        probability: low
+
+    demo:
+      required: false
+      notes: "Sprint tecnico, nao requer demo formal"
+
+  # ==========================================================================
+  # SPRINT 1 - DATA INGESTION
+  # ==========================================================================
+  sprint_1:
+    name: "Sprint 1 - Data Ingestion"
+    goal: "Implementar ingestao de dados da Alpha Vantage com cache"
+    duration: "2 semanas"
+    start_date: "TBD"
+    end_date: "TBD + 14 dias"
+
+    story_points: 29
+    capacity_used: "116%"
+    notes: "Sprint grande, pode precisar de overtime ou extensao"
+
+    epics:
+      - EPIC-001
+
+    user_stories:
+      - STORY-001  # Conectar Alpha Vantage
+      - STORY-002  # Cache Redis
+      - STORY-003  # Scheduler
+      - STORY-004  # Lista de ativos
+
+    tasks:
+      # STORY-001
+      - TASK-010  # Interface IMarketDataProvider
+      - TASK-011  # AlphaVantageClient
+      - TASK-012  # Retry com Polly
+      - TASK-013  # Rate limiting
+      - TASK-014  # Testes unitarios
+      - TASK-015  # Testes integracao
+      # STORY-002
+      - TASK-020  # Conexao Redis
+      - TASK-021  # Interface IMarketDataCache
+      - TASK-022  # RedisMarketDataCache
+      - TASK-023  # Cache-aside pattern
+      - TASK-024  # Testes cache
+      # STORY-003
+      - TASK-030  # Hangfire
+      - TASK-031  # MarketDataIngestionJob
+      - TASK-032  # Horario pregao
+      - TASK-033  # Testes scheduler
+      # STORY-004
+      - TASK-040  # Entidade Asset
+      - TASK-041  # Seed ativos
+      - TASK-042  # GET /assets
+      - TASK-043  # Testes assets
+
+    deliverables:
+      - "Cliente Alpha Vantage funcional"
+      - "Cache Redis implementado"
+      - "Scheduler de ingestao"
+      - "API de assets"
+      - "Seed com 100 ativos B3"
+
+    acceptance_criteria:
+      - "Dados OHLC de PETR4 obtidos via API"
+      - "Cache hit retorna em < 10ms"
+      - "Scheduler executa a cada 5 min durante pregao"
+      - "GET /api/v1/assets retorna lista paginada"
+
+    risks:
+      - description: "Rate limit Alpha Vantage atingido durante desenvolvimento"
+        mitigation: "Usar dados mockados para testes locais, API real apenas em CI"
+        probability: medium
+
+    demo:
+      required: true
+      focus: "Mostrar ingestao de dados funcionando"
+      duration: "15 min"
+
+  # ==========================================================================
+  # SPRINT 2 - VOLATILITY METRICS
+  # ==========================================================================
+  sprint_2:
+    name: "Sprint 2 - Volatility Metrics"
+    goal: "Implementar calculos de metricas de volatilidade"
+    duration: "2 semanas"
+    start_date: "TBD"
+    end_date: "TBD + 14 dias"
+
+    story_points: 34
+    capacity_used: "136%"
+    notes: "Sprint mais pesado, considerar paralelizar tarefas"
+
+    epics:
+      - EPIC-002
+
+    user_stories:
+      - STORY-005  # ATR
+      - STORY-006  # Desvio Padrao
+      - STORY-007  # Bollinger (Premium)
+      - STORY-008  # Beta (Premium)
+      - STORY-009  # API Volatility
+
+    tasks:
+      # STORY-005
+      - TASK-050  # Interface IVolatilityCalculator
+      - TASK-051  # True Range
+      - TASK-052  # ATR SMMA
+      - TASK-053  # ATRP
+      - TASK-054  # Persistir metricas
+      - TASK-055  # Validar ATR
+      # STORY-006
+      - TASK-060  # Retornos logaritmicos
+      - TASK-061  # Desvio padrao
+      - TASK-062  # Percentil historico
+      - TASK-063  # Testes desvio
+      # STORY-007
+      - TASK-070  # SMA
+      - TASK-071  # Bollinger Bands
+      - TASK-072  # Percent_B e Bandwidth
+      - TASK-073  # Squeeze detection
+      - TASK-074  # Restringir premium
+      - TASK-075  # Testes Bollinger
+      # STORY-008
+      - TASK-080  # Ingerir Ibovespa
+      - TASK-081  # Covariancia
+      - TASK-082  # Beta
+      - TASK-083  # Schedule pos-mercado
+      - TASK-084  # Testes Beta
+      # STORY-009
+      - TASK-090  # GET /volatility/{symbol}
+      - TASK-091  # GET /volatility (batch)
+      - TASK-092  # GET /volatility/history
+      - TASK-093  # Testes API
+
+    deliverables:
+      - "Calculo de ATR validado"
+      - "Calculo de Desvio Padrao"
+      - "Bollinger Bands (premium)"
+      - "Beta vs Ibovespa (premium)"
+      - "API de volatilidade"
+
+    acceptance_criteria:
+      - "ATR calculado com desvio < 0.1% do Alpha Vantage"
+      - "API retorna metricas por tier"
+      - "Response time < 100ms para single asset"
+      - "Bollinger retorna 403 para free tier"
+
+    risks:
+      - description: "Discrepancia entre calculo proprio e Alpha Vantage"
+        mitigation: "Documentar formula usada, validar com planilha de referencia"
+        probability: medium
+
+    demo:
+      required: true
+      focus: "Mostrar metricas calculadas e API funcionando"
+      duration: "20 min"
+
+  # ==========================================================================
+  # SPRINT 3 - ALERT ENGINE
+  # ==========================================================================
+  sprint_3:
+    name: "Sprint 3 - Alert Engine"
+    goal: "Implementar sistema de alertas e engine de avaliacao"
+    duration: "2 semanas"
+    start_date: "TBD"
+    end_date: "TBD + 14 dias"
+
+    story_points: 40
+    capacity_used: "160%"
+    notes: "Sprint critico, foco no core do produto"
+
+    epics:
+      - EPIC-003
+
+    user_stories:
+      - STORY-010  # Alerta alta volatilidade
+      - STORY-011  # Alerta baixa volatilidade
+      - STORY-012  # Gerenciar alertas
+      - STORY-013  # Historico
+      - STORY-014  # Engine avaliacao
+
+    tasks:
+      # STORY-010
+      - TASK-100  # Entidade Alert
+      - TASK-101  # POST /alerts
+      - TASK-102  # Validacao threshold
+      - TASK-103  # Tipos de condicao
+      - TASK-104  # Limite por tier
+      # STORY-011
+      - TASK-110  # Alerta baixa volatilidade
+      - TASK-111  # Bollinger Squeeze premium
+      - TASK-112  # Testes alertas
+      # STORY-012
+      - TASK-120  # GET /alerts
+      - TASK-121  # PUT /alerts
+      - TASK-122  # DELETE /alerts
+      - TASK-123  # POST /alerts/pause
+      - TASK-124  # Testes CRUD
+      # STORY-013
+      - TASK-130  # Entidade AlertHistory
+      - TASK-131  # GET /alerts/history
+      - TASK-132  # Retencao por tier
+      - TASK-133  # Testes historico
+      # STORY-014
+      - TASK-140  # AlertEvaluationService
+      - TASK-141  # Deduplicacao
+      - TASK-142  # Cooldown
+      - TASK-143  # Fila notificacoes
+      - TASK-144  # Integrar scheduler
+      - TASK-145  # Metricas performance
+      - TASK-146  # Load test
+
+    deliverables:
+      - "CRUD completo de alertas"
+      - "Engine de avaliacao em tempo real"
+      - "Fila de notificacoes"
+      - "Historico de alertas"
+      - "Deduplicacao e cooldown"
+
+    acceptance_criteria:
+      - "Alerta criado via API e persistido"
+      - "Alerta disparado em < 30s apos evento"
+      - "Zero alertas duplicados"
+      - "10.000 regras avaliadas em < 10s"
+
+    risks:
+      - description: "Performance da engine de alertas"
+        mitigation: "Load test cedo, otimizar queries"
+        probability: medium
+      - description: "Complexidade de deduplicacao"
+        mitigation: "Usar Redis para tracking com TTL"
+        probability: low
+
+    demo:
+      required: true
+      focus: "Demo end-to-end de criacao e disparo de alerta"
+      duration: "25 min"
+
+  # ==========================================================================
+  # SPRINT 4 - DASHBOARD & AUTH
+  # ==========================================================================
+  sprint_4:
+    name: "Sprint 4 - Dashboard & Authentication"
+    goal: "Implementar dashboard e sistema de autenticacao"
+    duration: "2 semanas"
+    start_date: "TBD"
+    end_date: "TBD + 14 dias"
+
+    story_points: 38
+    capacity_used: "152%"
+
+    epics:
+      - EPIC-004
+
+    user_stories:
+      - STORY-015  # Watchlist
+      - STORY-016  # Grafico volatilidade
+      - STORY-017  # Formulario alertas
+      - STORY-018  # Autenticacao
+      - STORY-019  # Upgrade premium
+
+    tasks:
+      # STORY-015
+      - TASK-150  # Watchlist API
+      - TASK-151  # WatchlistCard
+      - TASK-152  # Pagina watchlist
+      - TASK-153  # Modal adicionar
+      - TASK-154  # Drag-and-drop
+      # STORY-016
+      - TASK-160  # Recharts
+      - TASK-161  # VolatilityChart
+      - TASK-162  # Pagina detalhes
+      - TASK-163  # Responsividade
+      # STORY-017
+      - TASK-170  # Wizard passo 1
+      - TASK-171  # Wizard passo 2
+      - TASK-172  # Wizard passo 3
+      - TASK-173  # Integracao API
+      # STORY-018
+      - TASK-180  # Auth endpoints
+      - TASK-181  # Rate limiting login
+      - TASK-182  # Paginas login/registro
+      - TASK-183  # Recuperacao senha
+      # STORY-019
+      - TASK-190  # Stripe integration
+      - TASK-191  # Pagina pricing
+
+    deliverables:
+      - "Dashboard funcional"
+      - "Watchlist com metricas"
+      - "Graficos de volatilidade"
+      - "Wizard de criacao de alertas"
+      - "Sistema de autenticacao"
+      - "Integracao Stripe"
+
+    acceptance_criteria:
+      - "Usuario pode registrar e fazer login"
+      - "Watchlist exibe ativos com metricas"
+      - "Grafico mostra historico de volatilidade"
+      - "Alerta pode ser criado via wizard"
+      - "Upgrade para premium funciona"
+
+    risks:
+      - description: "Complexidade de UX do wizard"
+        mitigation: "Wireframes antes de implementar"
+        probability: low
+      - description: "Integracao Stripe"
+        mitigation: "Usar test mode, webhook tunnel local"
+        probability: medium
+
+    demo:
+      required: true
+      focus: "Demo de fluxo completo de usuario"
+      duration: "30 min"
+
+  # ==========================================================================
+  # SPRINT 5 - NOTIFICATIONS
+  # ==========================================================================
+  sprint_5:
+    name: "Sprint 5 - Multi-Channel Notifications"
+    goal: "Implementar notificacoes por email, push, SMS e Telegram"
+    duration: "1 semana"
+    start_date: "TBD"
+    end_date: "TBD + 7 dias"
+
+    story_points: 24
+    capacity_used: "96%"
+
+    epics:
+      - EPIC-005
+
+    user_stories:
+      - STORY-020  # Email
+      - STORY-021  # Push PWA
+      - STORY-022  # SMS Premium
+      - STORY-023  # Telegram Premium
+
+    tasks:
+      # STORY-020
+      - TASK-200  # SendGrid
+      - TASK-201  # Templates email
+      - TASK-202  # EmailNotificationService
+      - TASK-203  # Testes email
+      # STORY-021
+      - TASK-210  # Service Worker
+      - TASK-211  # Push subscription API
+      - TASK-212  # PushNotificationService
+      - TASK-213  # PWA manifest
+      # STORY-022
+      - TASK-220  # Zenvia SMS
+      - TASK-221  # SmsNotificationService
+      - TASK-222  # Verificacao numero
+      # STORY-023
+      - TASK-230  # Telegram Bot
+      - TASK-231  # Vinculacao conta
+      - TASK-232  # TelegramNotificationService
+
+    deliverables:
+      - "Notificacoes por email"
+      - "Push notifications PWA"
+      - "SMS para premium"
+      - "Telegram bot para premium"
+
+    acceptance_criteria:
+      - "Email enviado em < 60s"
+      - "Push funciona em Chrome, Firefox, Safari"
+      - "SMS entregue para numero verificado"
+      - "Telegram bot responde a comandos"
+
+    risks:
+      - description: "Configuracao SPF/DKIM para emails"
+        mitigation: "Usar SendGrid com sender verificado"
+        probability: low
+      - description: "Compatibilidade de push em Safari iOS"
+        mitigation: "Fallback para polling se necessario"
+        probability: medium
+
+    demo:
+      required: true
+      focus: "Demo de recebimento de notificacoes em todos os canais"
+      duration: "20 min"
+
+  # ==========================================================================
+  # SPRINT 6 - POLISH & TESTING
+  # ==========================================================================
+  sprint_6:
+    name: "Sprint 6 - Polish & Testing"
+    goal: "Testes E2E, load testing, bug fixes e preparacao para producao"
+    duration: "1 semana"
+    start_date: "TBD"
+    end_date: "TBD + 7 dias"
+
+    story_points: 13
+    capacity_used: "52%"
+    notes: "Buffer para imprevistos e polimento"
+
+    epics: []
+
+    user_stories: []
+
+    tasks:
+      - TASK-300  # E2E tests
+      - TASK-301  # Load tests
+      - TASK-302  # Bug fixes
+      - TASK-303  # Documentacao
+      - TASK-304  # Deploy prep
+
+    deliverables:
+      - "Suite de testes E2E"
+      - "Resultados de load test"
+      - "Bugs criticos corrigidos"
+      - "Documentacao atualizada"
+      - "Ambiente de producao pronto"
+
+    acceptance_criteria:
+      - "Testes E2E passando"
+      - "100 usuarios concorrentes sem degradacao"
+      - "Zero bugs criticos"
+      - "README atualizado"
+      - "Deploy de staging validado"
+
+    risks:
+      - description: "Bugs criticos descobertos tarde"
+        mitigation: "Buffer de bug fixes planejado"
+        probability: medium
+      - description: "Problemas de performance em producao"
+        mitigation: "Load test simula producao"
+        probability: low
+
+    demo:
+      required: true
+      focus: "Demo final pre-producao"
+      duration: "30 min"
+
+  # ==========================================================================
+  # SUMMARY
+  # ==========================================================================
+  summary:
+    total_duration: "8-10 semanas"
+    total_story_points: 191
+
+    by_sprint:
+      sprint_0:
+        points: 13
+        duration: "1 semana"
+        focus: "Infrastructure"
+      sprint_1:
+        points: 29
+        duration: "2 semanas"
+        focus: "Data Ingestion"
+      sprint_2:
+        points: 34
+        duration: "2 semanas"
+        focus: "Volatility Metrics"
+      sprint_3:
+        points: 40
+        duration: "2 semanas"
+        focus: "Alert Engine"
+      sprint_4:
+        points: 38
+        duration: "2 semanas"
+        focus: "Dashboard"
+      sprint_5:
+        points: 24
+        duration: "1 semana"
+        focus: "Notifications"
+      sprint_6:
+        points: 13
+        duration: "1 semana"
+        focus: "Polish"
+
+    velocity:
+      assumed: 25  # story points per sprint
+      notes: "Ajustar baseado em velocity real apos Sprint 1"
+
+    milestones:
+      - name: "MVP Core"
+        sprint: 3
+        description: "Backend completo com alertas funcionando"
+      - name: "MVP Full"
+        sprint: 5
+        description: "Frontend + notificacoes"
+      - name: "Production Ready"
+        sprint: 6
+        description: "Pronto para deploy em producao"
+
+  # ==========================================================================
+  # CEREMONIES
+  # ==========================================================================
+  ceremonies:
+    sprint_planning:
+      when: "Primeiro dia do sprint"
+      duration: "2 horas"
+      participants: ["PO", "Dev Team"]
+      output: "Sprint backlog refinado"
+
+    daily_standup:
+      when: "Diariamente, 09:30"
+      duration: "15 minutos"
+      format: "O que fiz, o que vou fazer, bloqueios"
+
+    sprint_review:
+      when: "Ultimo dia do sprint"
+      duration: "1 hora"
+      participants: ["PO", "Dev Team", "Stakeholders"]
+      output: "Demo de features"
+
+    sprint_retrospective:
+      when: "Ultimo dia do sprint (apos review)"
+      duration: "1 hora"
+      participants: ["Dev Team"]
+      output: "Acoes de melhoria"
+
+    backlog_refinement:
+      when: "Meio do sprint"
+      duration: "1 hora"
+      participants: ["PO", "Dev Team"]
+      output: "Stories refinadas para proximo sprint"

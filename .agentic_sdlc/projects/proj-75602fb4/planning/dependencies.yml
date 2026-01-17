@@ -1,0 +1,573 @@
+# =============================================================================
+# Dependencies Graph - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 3 - Implementation Planning
+# Created: 2026-01-17T19:22:15Z
+# Author: delivery-planner
+# =============================================================================
+
+dependencies:
+  metadata:
+    project_id: proj-75602fb4
+    version: "1.0.0"
+    created_at: "2026-01-17T19:22:15Z"
+    updated_at: "2026-01-17T19:22:15Z"
+    author: delivery-planner
+
+  # ==========================================================================
+  # EPIC DEPENDENCIES
+  # ==========================================================================
+  epic_dependencies:
+    description: "Dependencias entre epicos"
+    graph: |
+      EPIC-001 (Ingestao de Dados)
+           |
+           v
+      EPIC-002 (Metricas de Volatilidade)
+           |
+           +-------> EPIC-003 (Sistema de Alertas) -----> EPIC-005 (Notificacoes)
+           |              |
+           v              v
+      EPIC-004 (Dashboard)
+
+    details:
+      - from: EPIC-001
+        to: EPIC-002
+        type: data_dependency
+        reason: "Metricas precisam de dados OHLC"
+
+      - from: EPIC-002
+        to: EPIC-003
+        type: data_dependency
+        reason: "Alertas avaliam metricas de volatilidade"
+
+      - from: EPIC-002
+        to: EPIC-004
+        type: api_dependency
+        reason: "Dashboard consome API de metricas"
+
+      - from: EPIC-003
+        to: EPIC-004
+        type: api_dependency
+        reason: "Dashboard exibe e configura alertas"
+
+      - from: EPIC-003
+        to: EPIC-005
+        type: event_dependency
+        reason: "Notificacoes consomem eventos de alertas"
+
+  # ==========================================================================
+  # STORY DEPENDENCIES
+  # ==========================================================================
+  story_dependencies:
+    # EPIC-001
+    STORY-001:
+      depends_on: []
+      blocking: [STORY-002, STORY-003]
+
+    STORY-002:
+      depends_on: [STORY-001]
+      blocking: [STORY-003]
+
+    STORY-003:
+      depends_on: [STORY-001, STORY-002]
+      blocking: []
+
+    STORY-004:
+      depends_on: []
+      blocking: [STORY-015]
+
+    # EPIC-002
+    STORY-005:
+      depends_on: [STORY-001, STORY-002]
+      blocking: [STORY-010, STORY-009]
+
+    STORY-006:
+      depends_on: [STORY-005]
+      blocking: [STORY-007, STORY-008, STORY-009]
+
+    STORY-007:
+      depends_on: [STORY-006]
+      blocking: []
+
+    STORY-008:
+      depends_on: [STORY-006, STORY-003]
+      blocking: []
+
+    STORY-009:
+      depends_on: [STORY-005, STORY-006]
+      blocking: [STORY-015, STORY-016]
+
+    # EPIC-003
+    STORY-010:
+      depends_on: [STORY-005, STORY-009]
+      blocking: [STORY-011, STORY-012, STORY-014]
+
+    STORY-011:
+      depends_on: [STORY-010]
+      blocking: []
+
+    STORY-012:
+      depends_on: [STORY-010]
+      blocking: [STORY-017]
+
+    STORY-013:
+      depends_on: [STORY-010]
+      blocking: []
+
+    STORY-014:
+      depends_on: [STORY-010, STORY-003]
+      blocking: [STORY-020, STORY-021, STORY-022, STORY-023]
+
+    # EPIC-004
+    STORY-015:
+      depends_on: [STORY-009, STORY-004]
+      blocking: []
+
+    STORY-016:
+      depends_on: [STORY-015]
+      blocking: []
+
+    STORY-017:
+      depends_on: [STORY-012]
+      blocking: []
+
+    STORY-018:
+      depends_on: []
+      blocking: [STORY-015, STORY-017, STORY-019]
+
+    STORY-019:
+      depends_on: [STORY-018]
+      blocking: []
+
+    # EPIC-005
+    STORY-020:
+      depends_on: [STORY-014]
+      blocking: []
+
+    STORY-021:
+      depends_on: [STORY-020]
+      blocking: []
+
+    STORY-022:
+      depends_on: [STORY-020]
+      blocking: []
+
+    STORY-023:
+      depends_on: [STORY-020]
+      blocking: []
+
+  # ==========================================================================
+  # CRITICAL PATH
+  # ==========================================================================
+  critical_path:
+    description: "Caminho critico do projeto - tarefas que determinam a duracao minima"
+
+    path:
+      - step: 1
+        tasks: [TASK-000, TASK-001]
+        description: "Setup do repositorio e solucao .NET"
+        duration: "3-5 dias"
+
+      - step: 2
+        tasks: [TASK-010, TASK-011, TASK-012, TASK-013]
+        description: "Cliente Alpha Vantage com resiliencia"
+        duration: "5-7 dias"
+
+      - step: 3
+        tasks: [TASK-020, TASK-022, TASK-023]
+        description: "Cache Redis para dados de mercado"
+        duration: "3-5 dias"
+
+      - step: 4
+        tasks: [TASK-050, TASK-051, TASK-052, TASK-054]
+        description: "Calculo e persistencia de ATR"
+        duration: "5-7 dias"
+
+      - step: 5
+        tasks: [TASK-100, TASK-101, TASK-103, TASK-140]
+        description: "Entidade Alert e servico de avaliacao"
+        duration: "7-10 dias"
+
+      - step: 6
+        tasks: [TASK-143, TASK-202, TASK-212]
+        description: "Fila e servicos de notificacao"
+        duration: "5-7 dias"
+
+      - step: 7
+        tasks: [TASK-180, TASK-182, TASK-152]
+        description: "Autenticacao e Dashboard"
+        duration: "7-10 dias"
+
+    total_critical_path_duration: "35-51 dias uteis"
+    buffer_recommendation: "10-15 dias"
+    total_with_buffer: "45-66 dias uteis (9-13 semanas)"
+
+  # ==========================================================================
+  # TASK DEPENDENCIES (DETAILED)
+  # ==========================================================================
+  task_dependencies:
+    # Sprint 0
+    TASK-000:
+      depends_on: []
+      blocking: [TASK-001, TASK-002]
+      type: foundation
+
+    TASK-001:
+      depends_on: [TASK-000]
+      blocking: [TASK-003, TASK-004, TASK-007, TASK-010, TASK-020, TASK-030, TASK-040, TASK-180]
+      type: foundation
+
+    TASK-002:
+      depends_on: [TASK-000]
+      blocking: [TASK-003, TASK-004, TASK-151, TASK-160, TASK-170, TASK-182, TASK-210]
+      type: foundation
+
+    TASK-003:
+      depends_on: [TASK-001, TASK-002]
+      blocking: [TASK-005, TASK-020]
+      type: infrastructure
+
+    TASK-004:
+      depends_on: [TASK-001, TASK-002]
+      blocking: []
+      type: infrastructure
+
+    TASK-005:
+      depends_on: [TASK-003]
+      blocking: [TASK-006]
+      type: infrastructure
+
+    TASK-006:
+      depends_on: [TASK-005]
+      blocking: []
+      type: infrastructure
+
+    TASK-007:
+      depends_on: [TASK-001]
+      blocking: []
+      type: observability
+
+    # Sprint 1 - Data Ingestion
+    TASK-010:
+      depends_on: [TASK-001]
+      blocking: [TASK-011, TASK-050]
+      type: domain
+
+    TASK-011:
+      depends_on: [TASK-010]
+      blocking: [TASK-012, TASK-023]
+      type: integration
+
+    TASK-012:
+      depends_on: [TASK-011]
+      blocking: [TASK-013, TASK-014]
+      type: resilience
+
+    TASK-013:
+      depends_on: [TASK-012]
+      blocking: [TASK-014]
+      type: resilience
+
+    TASK-014:
+      depends_on: [TASK-013]
+      blocking: [TASK-015]
+      type: testing
+
+    TASK-015:
+      depends_on: [TASK-014]
+      blocking: []
+      type: testing
+
+    TASK-020:
+      depends_on: [TASK-001, TASK-003]
+      blocking: [TASK-021]
+      type: infrastructure
+
+    TASK-021:
+      depends_on: [TASK-020]
+      blocking: [TASK-022]
+      type: domain
+
+    TASK-022:
+      depends_on: [TASK-021]
+      blocking: [TASK-023, TASK-024]
+      type: implementation
+
+    TASK-023:
+      depends_on: [TASK-022, TASK-011]
+      blocking: [TASK-024, TASK-031]
+      type: implementation
+
+    TASK-024:
+      depends_on: [TASK-023]
+      blocking: []
+      type: testing
+
+    TASK-030:
+      depends_on: [TASK-001]
+      blocking: [TASK-031, TASK-083]
+      type: infrastructure
+
+    TASK-031:
+      depends_on: [TASK-030, TASK-023]
+      blocking: [TASK-032, TASK-144]
+      type: worker
+
+    TASK-032:
+      depends_on: [TASK-031]
+      blocking: [TASK-033]
+      type: business_logic
+
+    TASK-033:
+      depends_on: [TASK-032]
+      blocking: []
+      type: testing
+
+    TASK-040:
+      depends_on: [TASK-001]
+      blocking: [TASK-041, TASK-050, TASK-100]
+      type: domain
+
+    TASK-041:
+      depends_on: [TASK-040]
+      blocking: [TASK-042]
+      type: data
+
+    TASK-042:
+      depends_on: [TASK-041]
+      blocking: [TASK-043]
+      type: api
+
+    TASK-043:
+      depends_on: [TASK-042]
+      blocking: []
+      type: testing
+
+    # Sprint 2 - Volatility Metrics (simplified)
+    TASK-050:
+      depends_on: [TASK-040]
+      blocking: [TASK-051, TASK-060, TASK-070]
+      type: domain
+
+    TASK-054:
+      depends_on: [TASK-053]
+      blocking: [TASK-055, TASK-090, TASK-140]
+      type: persistence
+
+    TASK-090:
+      depends_on: [TASK-054, TASK-061]
+      blocking: [TASK-091, TASK-150]
+      type: api
+
+    # Sprint 3 - Alerts (simplified)
+    TASK-100:
+      depends_on: [TASK-040]
+      blocking: [TASK-101, TASK-120, TASK-130]
+      type: domain
+
+    TASK-140:
+      depends_on: [TASK-103, TASK-054]
+      blocking: [TASK-141, TASK-143]
+      type: core
+
+    TASK-143:
+      depends_on: [TASK-142]
+      blocking: [TASK-144, TASK-202, TASK-212, TASK-221, TASK-232]
+      type: messaging
+
+    # Sprint 4-5 (simplified - see full task breakdown)
+    TASK-180:
+      depends_on: [TASK-001]
+      blocking: [TASK-181, TASK-182, TASK-183, TASK-150, TASK-190]
+      type: auth
+
+    TASK-202:
+      depends_on: [TASK-201, TASK-143]
+      blocking: [TASK-203]
+      type: notifications
+
+  # ==========================================================================
+  # PARALLEL WORK OPPORTUNITIES
+  # ==========================================================================
+  parallelization:
+    description: "Tarefas que podem ser feitas em paralelo por diferentes devs"
+
+    opportunities:
+      - group: "Sprint 0 Setup"
+        parallel_tracks:
+          - track_1: [TASK-001]
+            focus: "Backend .NET"
+          - track_2: [TASK-002]
+            focus: "Frontend Next.js"
+
+      - group: "Sprint 1 Data Layer"
+        parallel_tracks:
+          - track_1: [TASK-010, TASK-011, TASK-012, TASK-013]
+            focus: "Alpha Vantage client"
+          - track_2: [TASK-020, TASK-021, TASK-022]
+            focus: "Redis cache"
+          - track_3: [TASK-040, TASK-041, TASK-042]
+            focus: "Assets API"
+
+      - group: "Sprint 2 Calculations"
+        parallel_tracks:
+          - track_1: [TASK-050, TASK-051, TASK-052, TASK-053]
+            focus: "ATR calculation"
+          - track_2: [TASK-060, TASK-061, TASK-062]
+            focus: "Desvio Padrao"
+          - track_3: [TASK-070, TASK-071, TASK-072, TASK-073]
+            focus: "Bollinger Bands"
+
+      - group: "Sprint 3 Alert System"
+        parallel_tracks:
+          - track_1: [TASK-100, TASK-101, TASK-102, TASK-103]
+            focus: "Alert CRUD"
+          - track_2: [TASK-140, TASK-141, TASK-142]
+            focus: "Alert Engine"
+
+      - group: "Sprint 4 Frontend"
+        parallel_tracks:
+          - track_1: [TASK-180, TASK-181, TASK-182, TASK-183]
+            focus: "Authentication"
+          - track_2: [TASK-150, TASK-151, TASK-152, TASK-153]
+            focus: "Watchlist"
+          - track_3: [TASK-160, TASK-161, TASK-162]
+            focus: "Charts"
+
+      - group: "Sprint 5 Notifications"
+        parallel_tracks:
+          - track_1: [TASK-200, TASK-201, TASK-202]
+            focus: "Email"
+          - track_2: [TASK-210, TASK-211, TASK-212]
+            focus: "Push"
+          - track_3: [TASK-220, TASK-221]
+            focus: "SMS"
+          - track_4: [TASK-230, TASK-231, TASK-232]
+            focus: "Telegram"
+
+  # ==========================================================================
+  # MERMAID DIAGRAM
+  # ==========================================================================
+  mermaid_graph: |
+    ```mermaid
+    graph TD
+        subgraph Sprint0["Sprint 0 - Setup"]
+            T000[TASK-000: Repo Structure]
+            T001[TASK-001: .NET Solution]
+            T002[TASK-002: Next.js]
+            T003[TASK-003: Docker Compose]
+            T004[TASK-004: CI Pipeline]
+        end
+
+        subgraph Sprint1["Sprint 1 - Data Ingestion"]
+            T010[TASK-010: IMarketDataProvider]
+            T011[TASK-011: AlphaVantageClient]
+            T020[TASK-020: Redis Connection]
+            T022[TASK-022: MarketDataCache]
+            T031[TASK-031: IngestionJob]
+            T040[TASK-040: Asset Entity]
+            T042[TASK-042: Assets API]
+        end
+
+        subgraph Sprint2["Sprint 2 - Metrics"]
+            T050[TASK-050: IVolatilityCalculator]
+            T052[TASK-052: ATR]
+            T054[TASK-054: Persist Metrics]
+            T061[TASK-061: StdDev]
+            T071[TASK-071: Bollinger]
+            T090[TASK-090: Volatility API]
+        end
+
+        subgraph Sprint3["Sprint 3 - Alerts"]
+            T100[TASK-100: Alert Entity]
+            T101[TASK-101: Alerts API]
+            T140[TASK-140: EvaluationService]
+            T143[TASK-143: Notification Queue]
+        end
+
+        subgraph Sprint4["Sprint 4 - Dashboard"]
+            T180[TASK-180: Auth Endpoints]
+            T182[TASK-182: Login/Register]
+            T152[TASK-152: Watchlist Page]
+            T162[TASK-162: Asset Details]
+        end
+
+        subgraph Sprint5["Sprint 5 - Notifications"]
+            T202[TASK-202: EmailService]
+            T212[TASK-212: PushService]
+        end
+
+        T000 --> T001
+        T000 --> T002
+        T001 --> T003
+        T002 --> T003
+        T001 --> T010
+        T010 --> T011
+        T011 --> T022
+        T020 --> T022
+        T022 --> T031
+        T040 --> T050
+        T011 --> T054
+        T050 --> T052
+        T052 --> T054
+        T054 --> T090
+        T061 --> T090
+        T040 --> T100
+        T054 --> T140
+        T100 --> T101
+        T140 --> T143
+        T143 --> T202
+        T143 --> T212
+        T001 --> T180
+        T002 --> T182
+        T090 --> T152
+        T152 --> T162
+    ```
+
+  # ==========================================================================
+  # EXTERNAL DEPENDENCIES
+  # ==========================================================================
+  external_dependencies:
+    - name: "Alpha Vantage API Key"
+      type: service
+      required_by: [TASK-011]
+      status: pending
+      owner: "DevOps"
+      notes: "Obter API key free tier"
+
+    - name: "SendGrid Account"
+      type: service
+      required_by: [TASK-200]
+      status: pending
+      owner: "DevOps"
+      notes: "Criar conta e verificar sender"
+
+    - name: "Azure Subscription"
+      type: infrastructure
+      required_by: [TASK-006]
+      status: pending
+      owner: "DevOps"
+      notes: "Subscription com creditos para MVP"
+
+    - name: "Stripe Account"
+      type: service
+      required_by: [TASK-190]
+      status: pending
+      owner: "DevOps"
+      notes: "Conta em test mode"
+
+    - name: "Telegram Bot Token"
+      type: service
+      required_by: [TASK-230]
+      status: pending
+      owner: "Dev"
+      notes: "Criar via @BotFather"
+
+    - name: "Zenvia Account"
+      type: service
+      required_by: [TASK-220]
+      status: pending
+      owner: "DevOps"
+      notes: "Conta para SMS"

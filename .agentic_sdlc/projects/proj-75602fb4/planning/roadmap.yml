@@ -1,0 +1,463 @@
+# =============================================================================
+# Roadmap - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 3 - Implementation Planning
+# Created: 2026-01-17T19:28:44Z
+# Author: delivery-planner
+# =============================================================================
+
+roadmap:
+  metadata:
+    project_id: proj-75602fb4
+    version: "1.0.0"
+    created_at: "2026-01-17T19:28:44Z"
+    updated_at: "2026-01-17T19:28:44Z"
+    author: delivery-planner
+
+  overview:
+    total_duration: "8-10 semanas"
+    methodology: "Agile/Scrum"
+    sprint_duration: "1-2 semanas"
+    target_mvp_date: "TBD + 10 semanas"
+
+  # ==========================================================================
+  # MILESTONES
+  # ==========================================================================
+  milestones:
+    - id: M0
+      name: "Project Kickoff"
+      target_date: "Week 0"
+      description: "Inicio oficial do projeto"
+      criteria:
+        - "Repositorio criado"
+        - "Equipe alocada"
+        - "Ambientes configurados"
+      deliverables:
+        - "Estrutura de repositorio"
+        - "CI/CD basico"
+        - "Docker Compose funcional"
+      github_milestone: "Sprint 0 - Setup"
+      status: planned
+
+    - id: M1
+      name: "Data Pipeline Complete"
+      target_date: "Week 3"
+      description: "Pipeline de dados funcionando end-to-end"
+      criteria:
+        - "Dados de 100 ativos sendo ingeridos"
+        - "Cache Redis funcionando"
+        - "Scheduler respeitando rate limits"
+      deliverables:
+        - "Cliente Alpha Vantage"
+        - "Cache layer"
+        - "Assets API"
+        - "Scheduler de ingestao"
+      github_milestone: "Sprint 1 - Data Ingestion"
+      status: planned
+
+    - id: M2
+      name: "Metrics Engine Complete"
+      target_date: "Week 5"
+      description: "Todas as metricas de volatilidade calculadas"
+      criteria:
+        - "ATR calculado e validado"
+        - "Desvio Padrao calculado"
+        - "Bollinger Bands (premium)"
+        - "Beta vs Ibovespa (premium)"
+        - "API de metricas disponivel"
+      deliverables:
+        - "Calculadora de volatilidade"
+        - "API de metricas"
+        - "Validacao contra dados oficiais"
+      github_milestone: "Sprint 2 - Volatility Metrics"
+      status: planned
+
+    - id: M3
+      name: "Alert System Complete"
+      target_date: "Week 7"
+      description: "Sistema de alertas funcionando end-to-end"
+      criteria:
+        - "CRUD de alertas"
+        - "Engine de avaliacao em tempo real"
+        - "Fila de notificacoes"
+        - "Historico de alertas"
+        - "Performance: 10k regras em < 10s"
+      deliverables:
+        - "API de alertas"
+        - "Alert evaluation engine"
+        - "Redis Streams para notificacoes"
+      github_milestone: "Sprint 3 - Alert Engine"
+      status: planned
+
+    - id: M4
+      name: "MVP Alpha"
+      target_date: "Week 9"
+      description: "MVP funcional para testes internos"
+      criteria:
+        - "Dashboard funcional"
+        - "Autenticacao completa"
+        - "Watchlist de ativos"
+        - "Configuracao de alertas"
+        - "Notificacoes por email"
+      deliverables:
+        - "Dashboard web (PWA)"
+        - "Sistema de autenticacao"
+        - "Fluxo completo usuario"
+      github_milestone: "Sprint 4 - Dashboard"
+      status: planned
+
+    - id: M5
+      name: "MVP Beta"
+      target_date: "Week 10"
+      description: "MVP com todos os canais de notificacao"
+      criteria:
+        - "Push notifications"
+        - "SMS (premium)"
+        - "Telegram (premium)"
+        - "Stripe integration"
+      deliverables:
+        - "Multi-channel notifications"
+        - "Payment integration"
+      github_milestone: "Sprint 5 - Notifications"
+      status: planned
+
+    - id: M6
+      name: "Production Ready"
+      target_date: "Week 11"
+      description: "Sistema pronto para producao"
+      criteria:
+        - "Testes E2E passando"
+        - "Load tests aprovados"
+        - "Zero bugs criticos"
+        - "Documentacao completa"
+        - "Deploy de staging validado"
+      deliverables:
+        - "Suite de testes"
+        - "Documentacao"
+        - "Ambiente de producao"
+      github_milestone: "Sprint 6 - Polish"
+      status: planned
+
+    - id: M7
+      name: "MVP Launch"
+      target_date: "Week 12"
+      description: "Lancamento do MVP em producao"
+      criteria:
+        - "Deploy em producao"
+        - "Monitoramento configurado"
+        - "Suporte inicial"
+      deliverables:
+        - "Produto em producao"
+        - "Dashboards de monitoramento"
+      github_milestone: "Release v1.0.0"
+      status: planned
+
+  # ==========================================================================
+  # TIMELINE (GANTT-STYLE)
+  # ==========================================================================
+  timeline:
+    gantt_text: |
+      Week:     1    2    3    4    5    6    7    8    9   10   11   12
+      -------------------------------------------------------------------------
+      Sprint 0  [====]
+      Sprint 1       [========]
+      Sprint 2                 [========]
+      Sprint 3                           [========]
+      Sprint 4                                     [========]
+      Sprint 5                                               [====]
+      Sprint 6                                                    [====]
+      Launch                                                           [==]
+      -------------------------------------------------------------------------
+      Milestone:  M0   M1        M2        M3        M4   M5   M6   M7
+
+    weeks:
+      - week: 1
+        sprints: [sprint_0]
+        milestones: [M0]
+        focus: "Infrastructure setup"
+
+      - week: 2
+        sprints: [sprint_1]
+        milestones: []
+        focus: "Alpha Vantage integration"
+
+      - week: 3
+        sprints: [sprint_1]
+        milestones: [M1]
+        focus: "Cache and scheduler"
+
+      - week: 4
+        sprints: [sprint_2]
+        milestones: []
+        focus: "ATR and StdDev"
+
+      - week: 5
+        sprints: [sprint_2]
+        milestones: [M2]
+        focus: "Bollinger, Beta, API"
+
+      - week: 6
+        sprints: [sprint_3]
+        milestones: []
+        focus: "Alert CRUD"
+
+      - week: 7
+        sprints: [sprint_3]
+        milestones: [M3]
+        focus: "Alert engine"
+
+      - week: 8
+        sprints: [sprint_4]
+        milestones: []
+        focus: "Dashboard and auth"
+
+      - week: 9
+        sprints: [sprint_4]
+        milestones: [M4]
+        focus: "Complete frontend"
+
+      - week: 10
+        sprints: [sprint_5]
+        milestones: [M5]
+        focus: "Notifications"
+
+      - week: 11
+        sprints: [sprint_6]
+        milestones: [M6]
+        focus: "Testing and polish"
+
+      - week: 12
+        sprints: []
+        milestones: [M7]
+        focus: "Production launch"
+
+  # ==========================================================================
+  # PHASES
+  # ==========================================================================
+  phases:
+    - name: "Foundation"
+      duration: "1 semana"
+      sprints: [sprint_0]
+      description: "Setup de infraestrutura e ambiente"
+      key_outcomes:
+        - "Desenvolvimento pode iniciar"
+        - "CI/CD funcionando"
+
+    - name: "Core Backend"
+      duration: "4 semanas"
+      sprints: [sprint_1, sprint_2]
+      description: "Backend com dados e metricas"
+      key_outcomes:
+        - "Dados fluindo do Alpha Vantage"
+        - "Metricas calculadas corretamente"
+        - "APIs de dados disponiveis"
+
+    - name: "Alert System"
+      duration: "2 semanas"
+      sprints: [sprint_3]
+      description: "Sistema de alertas completo"
+      key_outcomes:
+        - "Alertas podem ser criados e avaliados"
+        - "Engine de avaliacao performante"
+        - "Fila de notificacoes funcionando"
+
+    - name: "User Experience"
+      duration: "2 semanas"
+      sprints: [sprint_4]
+      description: "Frontend e experiencia de usuario"
+      key_outcomes:
+        - "Dashboard funcional"
+        - "Autenticacao segura"
+        - "UX intuitiva"
+
+    - name: "Notifications"
+      duration: "1 semana"
+      sprints: [sprint_5]
+      description: "Multi-channel notifications"
+      key_outcomes:
+        - "Email, Push, SMS, Telegram"
+        - "Usuarios podem ser notificados"
+
+    - name: "Release Prep"
+      duration: "1 semana"
+      sprints: [sprint_6]
+      description: "Preparacao para producao"
+      key_outcomes:
+        - "Qualidade validada"
+        - "Performance confirmada"
+        - "Pronto para usuarios"
+
+  # ==========================================================================
+  # RELEASES
+  # ==========================================================================
+  releases:
+    - version: "0.1.0-alpha"
+      target_date: "Week 5"
+      milestone: M2
+      scope: "Backend com metricas"
+      features:
+        - "Ingestao de dados"
+        - "Calculo de metricas"
+        - "API de volatilidade"
+      audience: "Internal testing only"
+
+    - version: "0.5.0-alpha"
+      target_date: "Week 7"
+      milestone: M3
+      scope: "Backend com alertas"
+      features:
+        - "Sistema de alertas"
+        - "Engine de avaliacao"
+      audience: "Internal testing only"
+
+    - version: "0.9.0-beta"
+      target_date: "Week 9"
+      milestone: M4
+      scope: "MVP Alpha"
+      features:
+        - "Dashboard completo"
+        - "Autenticacao"
+        - "Email notifications"
+      audience: "Alpha testers"
+
+    - version: "1.0.0-rc"
+      target_date: "Week 11"
+      milestone: M6
+      scope: "Release Candidate"
+      features:
+        - "All MVP features"
+        - "Multi-channel notifications"
+        - "Stripe integration"
+      audience: "Beta testers"
+
+    - version: "1.0.0"
+      target_date: "Week 12"
+      milestone: M7
+      scope: "MVP Launch"
+      features:
+        - "Production-ready MVP"
+      audience: "Public"
+
+  # ==========================================================================
+  # FUTURE ROADMAP (POST-MVP)
+  # ==========================================================================
+  future:
+    version_1_1:
+      target: "Q2 2026"
+      features:
+        - "WebSocket para updates em tempo real"
+        - "Historico de precos no grafico"
+        - "Export de dados CSV"
+        - "Dark mode"
+
+    version_1_2:
+      target: "Q3 2026"
+      features:
+        - "Alertas baseados em volume"
+        - "Correlacao entre ativos"
+        - "Mobile app nativo (React Native)"
+        - "API publica para integradores"
+
+    version_2_0:
+      target: "Q4 2026"
+      features:
+        - "Dados intraday"
+        - "Opcoes e derivativos"
+        - "Machine learning para previsao de volatilidade"
+        - "Multi-regiao (Latam)"
+
+  # ==========================================================================
+  # DEPENDENCIES ON EXTERNAL TEAMS
+  # ==========================================================================
+  external_team_dependencies:
+    - team: "DevOps"
+      tasks:
+        - "Configurar Azure subscription"
+        - "Obter API keys (Alpha Vantage, SendGrid, Stripe)"
+        - "Configurar DNS"
+        - "Setup de secrets em Key Vault"
+      deadline: "Week 1"
+      status: pending
+
+    - team: "Legal"
+      tasks:
+        - "Revisar termos de uso"
+        - "Revisar politica de privacidade"
+        - "Validar disclaimers CVM"
+      deadline: "Week 8"
+      status: pending
+
+    - team: "Security"
+      tasks:
+        - "Revisar threat model"
+        - "Pen test antes de producao"
+      deadline: "Week 10"
+      status: pending
+
+  # ==========================================================================
+  # RISKS AND MITIGATIONS
+  # ==========================================================================
+  roadmap_risks:
+    - risk: "Atraso em setup de Azure"
+      impact: "Bloqueia deploy de staging"
+      probability: low
+      mitigation: "Iniciar processo de provisao cedo"
+
+    - risk: "Problemas de performance em producao"
+      impact: "Atraso no lancamento"
+      probability: medium
+      mitigation: "Load tests em staging antes de producao"
+
+    - risk: "Feedback negativo de alpha testers"
+      impact: "Refatoracao de UX"
+      probability: medium
+      mitigation: "Alpha test com grupo pequeno, iterar rapido"
+
+    - risk: "Mudancas na API Alpha Vantage"
+      impact: "Quebra de ingestao"
+      probability: low
+      mitigation: "Abstrar cliente, monitorar changelog"
+
+  # ==========================================================================
+  # SUCCESS METRICS
+  # ==========================================================================
+  success_metrics:
+    technical:
+      - name: "Latencia de alertas"
+        target: "p95 < 30s"
+        measurement: "Prometheus"
+
+      - name: "Uptime durante pregao"
+        target: ">= 99%"
+        measurement: "UptimeRobot"
+
+      - name: "Cache hit ratio"
+        target: ">= 80%"
+        measurement: "Redis metrics"
+
+    business:
+      - name: "Usuarios registrados (Week 12)"
+        target: "50"
+        measurement: "Database"
+
+      - name: "Alertas criados (Week 12)"
+        target: "200"
+        measurement: "Database"
+
+      - name: "Taxa de conversao free->premium"
+        target: "5%"
+        measurement: "Stripe + Database"
+
+    quality:
+      - name: "Cobertura de testes"
+        target: ">= 80%"
+        measurement: "CI coverage report"
+
+      - name: "Bugs criticos em producao"
+        target: "0"
+        measurement: "Issue tracker"
+
+      - name: "NPS de alpha testers"
+        target: ">= 7"
+        measurement: "Survey"

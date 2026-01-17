@@ -1,0 +1,2122 @@
+# =============================================================================
+# Task Breakdown - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 3 - Implementation Planning
+# Created: 2026-01-17T19:02:33Z
+# Author: delivery-planner
+# =============================================================================
+
+task_breakdown:
+  metadata:
+    project_id: proj-75602fb4
+    version: "1.0.0"
+    created_at: "2026-01-17T19:02:33Z"
+    updated_at: "2026-01-17T19:02:33Z"
+    author: delivery-planner
+    total_stories: 23
+    total_tasks: 127
+
+  summary: |
+    Breakdown das 23 user stories em tasks tecnicas executaveis.
+    Cada task e atomica, estimada e tem dependencias mapeadas.
+
+    Organizacao:
+    - Sprint 0: Infraestrutura e Setup (8 tasks)
+    - EPIC-001: Ingestao de Dados (22 tasks)
+    - EPIC-002: Metricas de Volatilidade (25 tasks)
+    - EPIC-003: Sistema de Alertas (28 tasks)
+    - EPIC-004: Dashboard (26 tasks)
+    - EPIC-005: Notificacoes (18 tasks)
+
+  # ==========================================================================
+  # SPRINT 0 - INFRASTRUCTURE SETUP
+  # ==========================================================================
+  sprint_0_infrastructure:
+    name: "Sprint 0 - Infrastructure & Setup"
+    description: "Setup inicial de repositorio, CI/CD e ambiente de desenvolvimento"
+    estimated_duration: "1 semana"
+    story_points: 13
+
+    tasks:
+      - id: TASK-000
+        title: "Criar estrutura do repositorio monorepo"
+        type: setup
+        description: |
+          Criar estrutura de pastas para monorepo com backend (.NET) e frontend (Next.js)
+        acceptance_criteria:
+          - "Estrutura de pastas criada conforme padrao"
+          - ".gitignore configurado para .NET e Node.js"
+          - "README.md com instrucoes de setup"
+          - ".editorconfig configurado"
+        estimated_hours: 2
+        story_points: 1
+        priority: critical
+        dependencies: []
+        assigned_sprint: 0
+        labels: ["setup", "infrastructure"]
+
+      - id: TASK-001
+        title: "Criar solucao .NET 8 com projetos base"
+        type: setup
+        description: |
+          Criar solution com projetos: Satra.Api, Satra.Worker, Satra.Notifier,
+          Satra.Domain, Satra.Infrastructure, Satra.Tests
+        acceptance_criteria:
+          - "Solution criada com todos os projetos"
+          - "Referencias entre projetos configuradas"
+          - "NuGet packages base instalados"
+          - "Build limpo sem warnings"
+        estimated_hours: 3
+        story_points: 2
+        priority: critical
+        dependencies: [TASK-000]
+        assigned_sprint: 0
+        labels: ["setup", "backend"]
+
+      - id: TASK-002
+        title: "Criar projeto Next.js 14 com TypeScript"
+        type: setup
+        description: |
+          Criar aplicacao Next.js 14 com App Router, TypeScript strict,
+          Tailwind CSS e shadcn/ui configurados
+        acceptance_criteria:
+          - "Next.js 14 com App Router"
+          - "TypeScript strict mode"
+          - "Tailwind CSS configurado"
+          - "shadcn/ui instalado com tema"
+          - "ESLint + Prettier configurados"
+        estimated_hours: 3
+        story_points: 2
+        priority: critical
+        dependencies: [TASK-000]
+        assigned_sprint: 0
+        labels: ["setup", "frontend"]
+
+      - id: TASK-003
+        title: "Criar docker-compose para desenvolvimento local"
+        type: setup
+        description: |
+          Criar docker-compose.yml referenciando shared services e
+          definindo containers da aplicacao
+        acceptance_criteria:
+          - "docker-compose.yml funcional"
+          - "Conexao com PostgreSQL shared"
+          - "Conexao com Redis shared"
+          - "Hot reload funcionando"
+          - "README com instrucoes"
+        estimated_hours: 3
+        story_points: 2
+        priority: critical
+        dependencies: [TASK-001, TASK-002]
+        assigned_sprint: 0
+        labels: ["setup", "docker"]
+
+      - id: TASK-004
+        title: "Configurar CI pipeline (GitHub Actions)"
+        type: setup
+        description: |
+          Criar workflow de CI para build, test e security scan
+        acceptance_criteria:
+          - "Workflow CI acionado em push/PR"
+          - "Build .NET funcional"
+          - "Build Next.js funcional"
+          - "Testes executados"
+          - "Dependabot configurado"
+        estimated_hours: 4
+        story_points: 2
+        priority: high
+        dependencies: [TASK-001, TASK-002]
+        assigned_sprint: 0
+        labels: ["ci-cd", "github-actions"]
+
+      - id: TASK-005
+        title: "Criar Dockerfiles para producao"
+        type: setup
+        description: |
+          Criar Dockerfiles otimizados para API, Worker, Notifier e Web
+        acceptance_criteria:
+          - "Dockerfile multi-stage para cada servico"
+          - "Imagens baseadas em Alpine"
+          - "Health checks configurados"
+          - "Tamanho de imagem < 200MB"
+        estimated_hours: 4
+        story_points: 2
+        priority: high
+        dependencies: [TASK-003]
+        assigned_sprint: 0
+        labels: ["docker", "infrastructure"]
+
+      - id: TASK-006
+        title: "Configurar Terraform base para Azure"
+        type: setup
+        description: |
+          Criar estrutura Terraform para deploy no Azure
+        acceptance_criteria:
+          - "Estrutura de modulos criada"
+          - "Backend remote configurado"
+          - "Variaveis por ambiente"
+          - "Documentacao de uso"
+        estimated_hours: 4
+        story_points: 2
+        priority: medium
+        dependencies: [TASK-005]
+        assigned_sprint: 0
+        labels: ["terraform", "azure"]
+
+      - id: TASK-007
+        title: "Configurar logging e observabilidade base"
+        type: setup
+        description: |
+          Configurar Serilog com structured logging e metricas Prometheus
+        acceptance_criteria:
+          - "Serilog configurado com JSON output"
+          - "Correlation ID propagado"
+          - "Endpoint /metrics exposto"
+          - "Health endpoints configurados"
+        estimated_hours: 3
+        story_points: 2
+        priority: medium
+        dependencies: [TASK-001]
+        assigned_sprint: 0
+        labels: ["observability", "logging"]
+
+  # ==========================================================================
+  # EPIC-001: INGESTAO DE DADOS DE MERCADO
+  # ==========================================================================
+  epic_001_tasks:
+    epic_id: EPIC-001
+    name: "Ingestao de Dados de Mercado"
+    total_tasks: 22
+    story_points: 29
+
+    # STORY-001: Conectar com Alpha Vantage API
+    story_001_tasks:
+      story_id: STORY-001
+      story_title: "Conectar com Alpha Vantage API"
+      story_points: 5
+      tasks:
+        - id: TASK-010
+          title: "Criar interface IMarketDataProvider"
+          type: development
+          description: |
+            Definir contrato para providers de dados de mercado
+          acceptance_criteria:
+            - "Interface com metodos GetDailyData, GetIntradayData"
+            - "DTOs para OHLC data"
+            - "Suporte a cancellation tokens"
+          estimated_hours: 2
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-001]
+          assigned_sprint: 1
+          labels: ["backend", "domain"]
+
+        - id: TASK-011
+          title: "Implementar AlphaVantageClient"
+          type: development
+          description: |
+            Implementar cliente HTTP para Alpha Vantage API
+          acceptance_criteria:
+            - "HttpClient com typed client pattern"
+            - "Deserializacao de JSON correta"
+            - "Tratamento de simbolos .SAO"
+            - "Logging de requests"
+          estimated_hours: 4
+          story_points: 2
+          priority: critical
+          dependencies: [TASK-010]
+          assigned_sprint: 1
+          labels: ["backend", "integration"]
+
+        - id: TASK-012
+          title: "Implementar retry com Polly"
+          type: development
+          description: |
+            Adicionar politicas de resiliencia com Polly
+          acceptance_criteria:
+            - "Retry exponencial para erros transientes"
+            - "Circuit breaker configurado"
+            - "Timeout de 30 segundos"
+            - "Metricas de retry expostas"
+          estimated_hours: 3
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-011]
+          assigned_sprint: 1
+          labels: ["backend", "resilience"]
+
+        - id: TASK-013
+          title: "Tratar rate limiting (429)"
+          type: development
+          description: |
+            Implementar tratamento especifico para rate limit 429
+          acceptance_criteria:
+            - "Detectar header Retry-After"
+            - "Enfileirar requests excedentes"
+            - "Log de eventos de rate limit"
+            - "Metricas de rate limit"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-012]
+          assigned_sprint: 1
+          labels: ["backend", "resilience"]
+
+        - id: TASK-014
+          title: "Criar testes unitarios para AlphaVantageClient"
+          type: testing
+          description: |
+            Testes unitarios com mocks de HttpClient
+          acceptance_criteria:
+            - "Testes para cenario feliz"
+            - "Testes para erros HTTP"
+            - "Testes para rate limit"
+            - "Coverage > 80%"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-013]
+          assigned_sprint: 1
+          labels: ["testing", "unit-tests"]
+
+        - id: TASK-015
+          title: "Criar testes de integracao com Alpha Vantage"
+          type: testing
+          description: |
+            Testes de integracao com API real (sandbox)
+          acceptance_criteria:
+            - "Teste de conexao basica"
+            - "Teste de parsing de dados reais"
+            - "Executar apenas em CI com flag"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-014]
+          assigned_sprint: 1
+          labels: ["testing", "integration-tests"]
+
+    # STORY-002: Implementar cache Redis para dados de mercado
+    story_002_tasks:
+      story_id: STORY-002
+      story_title: "Implementar cache Redis para dados de mercado"
+      story_points: 5
+      tasks:
+        - id: TASK-020
+          title: "Configurar conexao Redis com StackExchange.Redis"
+          type: development
+          description: |
+            Configurar cliente Redis com connection pooling
+          acceptance_criteria:
+            - "ConnectionMultiplexer configurado"
+            - "Connection string via config"
+            - "Health check de Redis"
+            - "Retry em desconexao"
+          estimated_hours: 2
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-001, TASK-003]
+          assigned_sprint: 1
+          labels: ["backend", "cache"]
+
+        - id: TASK-021
+          title: "Criar interface IMarketDataCache"
+          type: development
+          description: |
+            Definir contrato para cache de dados de mercado
+          acceptance_criteria:
+            - "Metodos Get, Set, Remove"
+            - "Suporte a TTL configuravel"
+            - "Key pattern documentado"
+          estimated_hours: 1
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-020]
+          assigned_sprint: 1
+          labels: ["backend", "domain"]
+
+        - id: TASK-022
+          title: "Implementar RedisMarketDataCache"
+          type: development
+          description: |
+            Implementar cache de dados OHLC em Redis
+          acceptance_criteria:
+            - "TTL 60s para intraday"
+            - "TTL 24h para diario"
+            - "Serializacao JSON eficiente"
+            - "Key pattern: ohlc:{symbol}:{interval}"
+          estimated_hours: 3
+          story_points: 2
+          priority: critical
+          dependencies: [TASK-021]
+          assigned_sprint: 1
+          labels: ["backend", "cache"]
+
+        - id: TASK-023
+          title: "Implementar cache-aside pattern"
+          type: development
+          description: |
+            Implementar logica de cache miss -> fetch -> cache
+          acceptance_criteria:
+            - "Cache miss busca na API"
+            - "Resultado armazenado em cache"
+            - "Fallback para cache stale se API falhar"
+            - "Metricas de hit/miss"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-022, TASK-011]
+          assigned_sprint: 1
+          labels: ["backend", "cache"]
+
+        - id: TASK-024
+          title: "Criar testes para cache Redis"
+          type: testing
+          description: |
+            Testes unitarios e integracao para cache
+          acceptance_criteria:
+            - "Testes com Redis fake/mock"
+            - "Testes de TTL"
+            - "Testes de cache miss"
+            - "Integration test com TestContainers"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-023]
+          assigned_sprint: 1
+          labels: ["testing"]
+
+    # STORY-003: Scheduler de ingestao de dados
+    story_003_tasks:
+      story_id: STORY-003
+      story_title: "Scheduler de ingestao de dados"
+      story_points: 3
+      tasks:
+        - id: TASK-030
+          title: "Configurar Hangfire para background jobs"
+          type: development
+          description: |
+            Instalar e configurar Hangfire com PostgreSQL storage
+          acceptance_criteria:
+            - "Hangfire server configurado"
+            - "Dashboard em /hangfire (protegido)"
+            - "Storage em PostgreSQL"
+            - "Retry policy configurada"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-001]
+          assigned_sprint: 1
+          labels: ["backend", "scheduler"]
+
+        - id: TASK-031
+          title: "Criar job MarketDataIngestionJob"
+          type: development
+          description: |
+            Implementar job de ingestao de dados
+          acceptance_criteria:
+            - "Job executa a cada 5 minutos"
+            - "Prioriza ativos com alertas"
+            - "Respeita rate limit (5 calls/min)"
+            - "Log de execucao"
+          estimated_hours: 4
+          story_points: 1
+          priority: high
+          dependencies: [TASK-030, TASK-023]
+          assigned_sprint: 1
+          labels: ["backend", "worker"]
+
+        - id: TASK-032
+          title: "Implementar verificacao de horario de pregao"
+          type: development
+          description: |
+            Verificar horario de pregao B3 (10h-17h BRT)
+          acceptance_criteria:
+            - "Job pausa fora do pregao"
+            - "Timezone America/Sao_Paulo"
+            - "Log quando pausa/retoma"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-031]
+          assigned_sprint: 1
+          labels: ["backend", "business-logic"]
+
+        - id: TASK-033
+          title: "Criar testes para scheduler"
+          type: testing
+          description: |
+            Testes para job de ingestao
+          acceptance_criteria:
+            - "Testes de horario de pregao"
+            - "Testes de priorizacao de ativos"
+            - "Testes de rate limit"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-032]
+          assigned_sprint: 1
+          labels: ["testing"]
+
+    # STORY-004: Lista de ativos suportados
+    story_004_tasks:
+      story_id: STORY-004
+      story_title: "Lista de ativos suportados (watchable assets)"
+      story_points: 3
+      tasks:
+        - id: TASK-040
+          title: "Criar entidade Asset e repository"
+          type: development
+          description: |
+            Criar entidade de dominio e repository para ativos
+          acceptance_criteria:
+            - "Entidade Asset com propriedades"
+            - "IAssetRepository interface"
+            - "EF Core DbContext mapping"
+            - "Migration inicial"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-001]
+          assigned_sprint: 1
+          labels: ["backend", "domain"]
+
+        - id: TASK-041
+          title: "Criar seed de ativos iniciais"
+          type: development
+          description: |
+            Seed com top 100 ativos B3
+          acceptance_criteria:
+            - "Seed SQL ou EF Core"
+            - "Top 50 IBOV"
+            - "Top 50 FIIs por liquidez"
+            - "Metadados: nome, setor, tipo"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-040]
+          assigned_sprint: 1
+          labels: ["backend", "data"]
+
+        - id: TASK-042
+          title: "Criar endpoint GET /api/v1/assets"
+          type: development
+          description: |
+            API para listar ativos disponiveis
+          acceptance_criteria:
+            - "Paginacao (page, pageSize)"
+            - "Filtro por tipo (stock, fii, etf)"
+            - "Busca por simbolo ou nome"
+            - "Response < 100ms"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-041]
+          assigned_sprint: 1
+          labels: ["backend", "api"]
+
+        - id: TASK-043
+          title: "Criar testes para assets API"
+          type: testing
+          description: |
+            Testes para endpoint de ativos
+          acceptance_criteria:
+            - "Testes de paginacao"
+            - "Testes de filtros"
+            - "Testes de busca"
+            - "Integration tests"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-042]
+          assigned_sprint: 1
+          labels: ["testing", "api"]
+
+  # ==========================================================================
+  # EPIC-002: CALCULO DE METRICAS DE VOLATILIDADE
+  # ==========================================================================
+  epic_002_tasks:
+    epic_id: EPIC-002
+    name: "Calculo de Metricas de Volatilidade"
+    total_tasks: 25
+    story_points: 34
+
+    # STORY-005: Calcular ATR
+    story_005_tasks:
+      story_id: STORY-005
+      story_title: "Calcular ATR (Average True Range)"
+      story_points: 5
+      tasks:
+        - id: TASK-050
+          title: "Criar interface IVolatilityCalculator"
+          type: development
+          description: |
+            Definir contrato para calculadores de volatilidade
+          acceptance_criteria:
+            - "Interface generica para metricas"
+            - "Metodo Calculate com dados OHLC"
+            - "DTO para resultado"
+          estimated_hours: 1
+          story_points: 0.5
+          priority: critical
+          dependencies: [TASK-040]
+          assigned_sprint: 2
+          labels: ["backend", "domain"]
+
+        - id: TASK-051
+          title: "Implementar calculo de True Range"
+          type: development
+          description: |
+            Implementar formula TR = max(high-low, |high-prev_close|, |low-prev_close|)
+          acceptance_criteria:
+            - "Formula correta implementada"
+            - "Tratamento de primeiro dia"
+            - "Validacao de inputs"
+          estimated_hours: 2
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-050]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-052
+          title: "Implementar ATR com SMMA"
+          type: development
+          description: |
+            Implementar ATR usando Smoothed Moving Average
+          acceptance_criteria:
+            - "ATR(14) por default"
+            - "Periodo configuravel"
+            - "SMMA corretamente implementado"
+          estimated_hours: 3
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-051]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-053
+          title: "Calcular ATRP (ATR em percentual)"
+          type: development
+          description: |
+            Calcular ATR como percentual do preco: ATRP = ATR/close * 100
+          acceptance_criteria:
+            - "ATRP calculado corretamente"
+            - "Retornado junto com ATR absoluto"
+          estimated_hours: 1
+          story_points: 0.5
+          priority: high
+          dependencies: [TASK-052]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-054
+          title: "Persistir metricas ATR no banco"
+          type: development
+          description: |
+            Salvar resultados de ATR na tabela volatility_metrics
+          acceptance_criteria:
+            - "Insert/Update em volatility_metrics"
+            - "Timestamp de calculo"
+            - "Periodo usado no calculo"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-053]
+          assigned_sprint: 2
+          labels: ["backend", "persistence"]
+
+        - id: TASK-055
+          title: "Validar ATR contra Alpha Vantage"
+          type: testing
+          description: |
+            Comparar calculo proprio com ATR do Alpha Vantage
+          acceptance_criteria:
+            - "Desvio < 0.1%"
+            - "Teste com 10 ativos diferentes"
+            - "Documentar formula usada"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-054]
+          assigned_sprint: 2
+          labels: ["testing", "validation"]
+
+    # STORY-006: Calcular Desvio Padrao Historico
+    story_006_tasks:
+      story_id: STORY-006
+      story_title: "Calcular Desvio Padrao Historico"
+      story_points: 3
+      tasks:
+        - id: TASK-060
+          title: "Implementar calculo de retornos logaritmicos"
+          type: development
+          description: |
+            Calcular r(t) = ln(P(t)/P(t-1))
+          acceptance_criteria:
+            - "Retornos logaritmicos calculados"
+            - "Serie de 30 dias por default"
+            - "Tratamento de dados faltantes"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-050]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-061
+          title: "Implementar desvio padrao amostral"
+          type: development
+          description: |
+            Calcular sigma = sqrt(variance(r))
+          acceptance_criteria:
+            - "Desvio padrao diario"
+            - "Desvio padrao anualizado (* sqrt(252))"
+            - "Formula estatisticamente correta"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-060]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-062
+          title: "Calcular percentil historico"
+          type: development
+          description: |
+            Calcular em que percentil a volatilidade atual esta
+          acceptance_criteria:
+            - "Percentil sobre 1 ano de historico"
+            - "Retornar interpretacao (ex: mais volatil que 85%)"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-061]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-063
+          title: "Testes de calculo de desvio padrao"
+          type: testing
+          description: |
+            Testes unitarios e validacao com dados conhecidos
+          acceptance_criteria:
+            - "Testes com dados sinteticos"
+            - "Validacao com planilha de referencia"
+            - "Coverage > 80%"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: high
+          dependencies: [TASK-062]
+          assigned_sprint: 2
+          labels: ["testing"]
+
+    # STORY-007: Calcular Bollinger Bands (Premium)
+    story_007_tasks:
+      story_id: STORY-007
+      story_title: "Calcular Bollinger Bands (Premium)"
+      story_points: 5
+      tasks:
+        - id: TASK-070
+          title: "Implementar SMA (Simple Moving Average)"
+          type: development
+          description: |
+            Calcular media movel simples de 20 periodos
+          acceptance_criteria:
+            - "SMA(20) por default"
+            - "Periodo configuravel para premium"
+          estimated_hours: 1
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-050]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-071
+          title: "Implementar Bollinger Bands"
+          type: development
+          description: |
+            Calcular upper, middle, lower bands
+          acceptance_criteria:
+            - "Upper = SMA + 2*sigma"
+            - "Lower = SMA - 2*sigma"
+            - "Desvios configuravel (1-3) para premium"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-070]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-072
+          title: "Calcular Percent_B e Bandwidth"
+          type: development
+          description: |
+            Calcular metricas derivadas de Bollinger
+          acceptance_criteria:
+            - "Percent_B = (preco - lower) / (upper - lower)"
+            - "Bandwidth = (upper - lower) / middle * 100"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-071]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-073
+          title: "Detectar Bollinger Squeeze"
+          type: development
+          description: |
+            Identificar quando bandwidth < percentil 10
+          acceptance_criteria:
+            - "Threshold baseado em 100 dias de historico"
+            - "Flag is_squeeze retornado"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-072]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-074
+          title: "Restringir Bollinger a tier premium"
+          type: development
+          description: |
+            Verificar tier do usuario antes de calcular
+          acceptance_criteria:
+            - "Verificacao de subscription_tier"
+            - "Retornar 403 se free tier"
+            - "Mensagem clara de upgrade"
+          estimated_hours: 1
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-073]
+          assigned_sprint: 2
+          labels: ["backend", "authorization"]
+
+        - id: TASK-075
+          title: "Testes para Bollinger Bands"
+          type: testing
+          description: |
+            Validar calculos de Bollinger
+          acceptance_criteria:
+            - "Comparar com Alpha Vantage BBANDS"
+            - "Testar deteccao de squeeze"
+            - "Testar restricao de tier"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-074]
+          assigned_sprint: 2
+          labels: ["testing"]
+
+    # STORY-008: Calcular Beta vs Ibovespa (Premium)
+    story_008_tasks:
+      story_id: STORY-008
+      story_title: "Calcular Beta vs Ibovespa (Premium)"
+      story_points: 5
+      tasks:
+        - id: TASK-080
+          title: "Ingerir dados do Ibovespa"
+          type: development
+          description: |
+            Buscar dados do ^BVSP via Alpha Vantage
+          acceptance_criteria:
+            - "Dados diarios do Ibovespa"
+            - "Armazenar como ativo especial"
+            - "Atualizar junto com outros ativos"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-031]
+          assigned_sprint: 2
+          labels: ["backend", "data"]
+
+        - id: TASK-081
+          title: "Implementar calculo de covariancia"
+          type: development
+          description: |
+            Calcular Cov(R_ativo, R_ibov) sobre 60 dias
+          acceptance_criteria:
+            - "Retornos logaritmicos de 60 dias"
+            - "Covariancia corretamente calculada"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-080, TASK-060]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-082
+          title: "Implementar calculo de Beta"
+          type: development
+          description: |
+            Calcular Beta = Cov(R_ativo, R_ibov) / Var(R_ibov)
+          acceptance_criteria:
+            - "Beta calculado corretamente"
+            - "R-squared calculado"
+            - "Interpretation (defensive/neutral/aggressive)"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-081]
+          assigned_sprint: 2
+          labels: ["backend", "calculation"]
+
+        - id: TASK-083
+          title: "Agendar calculo de Beta pos-mercado"
+          type: development
+          description: |
+            Job de calculo de Beta apos fechamento
+          acceptance_criteria:
+            - "Executar apos 18h BRT"
+            - "Calcular para todos os ativos monitorados"
+            - "Apenas premium"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-082, TASK-030]
+          assigned_sprint: 2
+          labels: ["backend", "scheduler"]
+
+        - id: TASK-084
+          title: "Testes para calculo de Beta"
+          type: testing
+          description: |
+            Validar calculo de Beta
+          acceptance_criteria:
+            - "Comparar com valores de referencia"
+            - "Testar interpretation thresholds"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-083]
+          assigned_sprint: 2
+          labels: ["testing"]
+
+    # STORY-009: API de metricas de volatilidade
+    story_009_tasks:
+      story_id: STORY-009
+      story_title: "API de metricas de volatilidade"
+      story_points: 3
+      tasks:
+        - id: TASK-090
+          title: "Criar endpoint GET /api/v1/volatility/{symbol}"
+          type: development
+          description: |
+            API para obter metricas de um ativo
+          acceptance_criteria:
+            - "Retornar metricas disponiveis para o tier"
+            - "Free: ATR, StdDev"
+            - "Premium: + Bollinger, Beta"
+            - "Response < 100ms"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-054, TASK-061]
+          assigned_sprint: 2
+          labels: ["backend", "api"]
+
+        - id: TASK-091
+          title: "Criar endpoint GET /api/v1/volatility (batch)"
+          type: development
+          description: |
+            API para obter metricas de multiplos ativos
+          acceptance_criteria:
+            - "Query param: symbols=PETR4,VALE3"
+            - "Maximo 10 ativos por request"
+            - "Response < 500ms"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-090]
+          assigned_sprint: 2
+          labels: ["backend", "api"]
+
+        - id: TASK-092
+          title: "Criar endpoint GET /api/v1/volatility/{symbol}/history"
+          type: development
+          description: |
+            API para historico de metricas
+          acceptance_criteria:
+            - "Ultimos 30 dias (free)"
+            - "Ate 1 ano (premium)"
+            - "Paginacao"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-090]
+          assigned_sprint: 2
+          labels: ["backend", "api"]
+
+        - id: TASK-093
+          title: "Testes para volatility API"
+          type: testing
+          description: |
+            Testes de integracao para API de volatilidade
+          acceptance_criteria:
+            - "Testes por tier"
+            - "Testes de batch"
+            - "Testes de performance"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: high
+          dependencies: [TASK-092]
+          assigned_sprint: 2
+          labels: ["testing", "api"]
+
+  # ==========================================================================
+  # EPIC-003: SISTEMA DE ALERTAS
+  # ==========================================================================
+  epic_003_tasks:
+    epic_id: EPIC-003
+    name: "Sistema de Alertas"
+    total_tasks: 28
+    story_points: 40
+
+    # STORY-010: Configurar alerta de alta volatilidade (ATR)
+    story_010_tasks:
+      story_id: STORY-010
+      story_title: "Configurar alerta de alta volatilidade (ATR)"
+      story_points: 5
+      tasks:
+        - id: TASK-100
+          title: "Criar entidade Alert e repository"
+          type: development
+          description: |
+            Modelo de dominio para configuracoes de alertas
+          acceptance_criteria:
+            - "Entidade Alert com todos os campos"
+            - "IAlertRepository interface"
+            - "EF Core mapping"
+            - "Migration"
+          estimated_hours: 3
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-040]
+          assigned_sprint: 3
+          labels: ["backend", "domain"]
+
+        - id: TASK-101
+          title: "Criar endpoint POST /api/v1/alerts"
+          type: development
+          description: |
+            API para criar novo alerta
+          acceptance_criteria:
+            - "Validacao de inputs"
+            - "Verificacao de limite por tier"
+            - "Resposta com alerta criado"
+          estimated_hours: 3
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-100]
+          assigned_sprint: 3
+          labels: ["backend", "api"]
+
+        - id: TASK-102
+          title: "Implementar validacao de threshold"
+          type: development
+          description: |
+            Validar threshold relativo a media historica
+          acceptance_criteria:
+            - "Threshold como percentual da media de 20 dias"
+            - "Valor default: 150%"
+            - "Range valido: 50% - 500%"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-101]
+          assigned_sprint: 3
+          labels: ["backend", "validation"]
+
+        - id: TASK-103
+          title: "Implementar tipos de condicao"
+          type: development
+          description: |
+            Suportar: acima, abaixo, cruza acima, cruza abaixo
+          acceptance_criteria:
+            - "Enum AlertCondition"
+            - "Logica de avaliacao para cada tipo"
+            - 'Estado anterior para "cruza"'
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-102]
+          assigned_sprint: 3
+          labels: ["backend", "business-logic"]
+
+        - id: TASK-104
+          title: "Implementar limite de alertas por tier"
+          type: development
+          description: |
+            Free: 3 alertas, Premium: ilimitado
+          acceptance_criteria:
+            - "Verificacao ao criar alerta"
+            - "Mensagem clara de limite atingido"
+            - "Sugestao de upgrade"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-103]
+          assigned_sprint: 3
+          labels: ["backend", "authorization"]
+
+    # STORY-011: Configurar alerta de baixa volatilidade (squeeze)
+    story_011_tasks:
+      story_id: STORY-011
+      story_title: "Configurar alerta de baixa volatilidade (squeeze)"
+      story_points: 3
+      tasks:
+        - id: TASK-110
+          title: "Adicionar suporte a alerta de baixa volatilidade"
+          type: development
+          description: |
+            Alerta quando ATR < X% da media
+          acceptance_criteria:
+            - "Threshold default: 50%"
+            - "Range valido: 10% - 80%"
+            - "Mensagem: 'Volatilidade baixa - potencial breakout'"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-103]
+          assigned_sprint: 3
+          labels: ["backend", "business-logic"]
+
+        - id: TASK-111
+          title: "Integrar Bollinger Squeeze para premium"
+          type: development
+          description: |
+            Alerta de squeeze baseado em Bollinger bandwidth
+          acceptance_criteria:
+            - "Apenas para premium"
+            - "Threshold: bandwidth < percentil 10"
+            - "Mensagem especifica de Bollinger"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-110, TASK-073]
+          assigned_sprint: 3
+          labels: ["backend", "premium"]
+
+        - id: TASK-112
+          title: "Testes para alertas de volatilidade"
+          type: testing
+          description: |
+            Testes para tipos de alerta
+          acceptance_criteria:
+            - "Testes de alta volatilidade"
+            - "Testes de baixa volatilidade"
+            - "Testes de squeeze premium"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-111]
+          assigned_sprint: 3
+          labels: ["testing"]
+
+    # STORY-012: Gerenciar alertas ativos
+    story_012_tasks:
+      story_id: STORY-012
+      story_title: "Gerenciar alertas ativos"
+      story_points: 3
+      tasks:
+        - id: TASK-120
+          title: "Criar endpoint GET /api/v1/alerts"
+          type: development
+          description: |
+            Listar alertas do usuario
+          acceptance_criteria:
+            - "Filtro por status"
+            - "Paginacao"
+            - "Include asset info"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: high
+          dependencies: [TASK-100]
+          assigned_sprint: 3
+          labels: ["backend", "api"]
+
+        - id: TASK-121
+          title: "Criar endpoint PUT /api/v1/alerts/{id}"
+          type: development
+          description: |
+            Editar alerta existente
+          acceptance_criteria:
+            - "Atualizar threshold, canais"
+            - "Validacao de ownership"
+            - "Audit log"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: high
+          dependencies: [TASK-120]
+          assigned_sprint: 3
+          labels: ["backend", "api"]
+
+        - id: TASK-122
+          title: "Criar endpoint DELETE /api/v1/alerts/{id}"
+          type: development
+          description: |
+            Deletar alerta (soft delete)
+          acceptance_criteria:
+            - "Soft delete"
+            - "Validacao de ownership"
+            - "Resposta 204"
+          estimated_hours: 1
+          story_points: 0.5
+          priority: high
+          dependencies: [TASK-120]
+          assigned_sprint: 3
+          labels: ["backend", "api"]
+
+        - id: TASK-123
+          title: "Criar endpoint POST /api/v1/alerts/{id}/pause"
+          type: development
+          description: |
+            Pausar/retomar alerta
+          acceptance_criteria:
+            - "Toggle status paused/active"
+            - "Validacao de ownership"
+          estimated_hours: 1
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-120]
+          assigned_sprint: 3
+          labels: ["backend", "api"]
+
+        - id: TASK-124
+          title: "Testes CRUD de alertas"
+          type: testing
+          description: |
+            Testes de integracao para CRUD
+          acceptance_criteria:
+            - "Testes de cada operacao"
+            - "Testes de ownership"
+            - "Testes de limites"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-123]
+          assigned_sprint: 3
+          labels: ["testing", "api"]
+
+    # STORY-013: Historico de alertas disparados
+    story_013_tasks:
+      story_id: STORY-013
+      story_title: "Historico de alertas disparados"
+      story_points: 3
+      tasks:
+        - id: TASK-130
+          title: "Criar entidade AlertHistory"
+          type: development
+          description: |
+            Modelo para historico de alertas disparados
+          acceptance_criteria:
+            - "Entidade com todos os campos"
+            - "Foreign keys para alert, user, asset"
+            - "Particionamento por data"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-100]
+          assigned_sprint: 3
+          labels: ["backend", "domain"]
+
+        - id: TASK-131
+          title: "Criar endpoint GET /api/v1/alerts/history"
+          type: development
+          description: |
+            API para historico de alertas
+          acceptance_criteria:
+            - "Free: 7 dias"
+            - "Premium: 90 dias"
+            - "Filtros: ativo, tipo, periodo"
+            - "Paginacao"
+          estimated_hours: 3
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-130]
+          assigned_sprint: 3
+          labels: ["backend", "api"]
+
+        - id: TASK-132
+          title: "Implementar retencao de dados por tier"
+          type: development
+          description: |
+            Job para limpar dados antigos
+          acceptance_criteria:
+            - "Limpar historico free > 7 dias"
+            - "Limpar historico premium > 90 dias"
+            - "Executar diariamente"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-131]
+          assigned_sprint: 3
+          labels: ["backend", "scheduler"]
+
+        - id: TASK-133
+          title: "Testes de historico"
+          type: testing
+          description: |
+            Testes para historico de alertas
+          acceptance_criteria:
+            - "Testes de retencao por tier"
+            - "Testes de filtros"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-132]
+          assigned_sprint: 3
+          labels: ["testing"]
+
+    # STORY-014: Engine de avaliacao de regras em tempo real
+    story_014_tasks:
+      story_id: STORY-014
+      story_title: "Engine de avaliacao de regras em tempo real"
+      story_points: 8
+      tasks:
+        - id: TASK-140
+          title: "Criar servico AlertEvaluationService"
+          type: development
+          description: |
+            Servico que avalia todas as regras de alertas
+          acceptance_criteria:
+            - "Carregar regras ativas do banco"
+            - "Avaliar contra metricas atuais"
+            - "Processamento paralelo"
+          estimated_hours: 4
+          story_points: 2
+          priority: critical
+          dependencies: [TASK-103, TASK-054]
+          assigned_sprint: 3
+          labels: ["backend", "core"]
+
+        - id: TASK-141
+          title: "Implementar deduplicacao de alertas"
+          type: development
+          description: |
+            Evitar alertas duplicados
+          acceptance_criteria:
+            - "Hash de evento (asset+type+threshold+time_window)"
+            - "Armazenar em Redis"
+            - "TTL = cooldown_minutes"
+          estimated_hours: 3
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-140]
+          assigned_sprint: 3
+          labels: ["backend", "dedup"]
+
+        - id: TASK-142
+          title: "Implementar cooldown entre alertas"
+          type: development
+          description: |
+            Respeitar cooldown_minutes entre alertas do mesmo tipo
+          acceptance_criteria:
+            - "Verificar last_triggered_at"
+            - "Default: 60 minutos"
+            - "Configuravel por alerta"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-141]
+          assigned_sprint: 3
+          labels: ["backend", "business-logic"]
+
+        - id: TASK-143
+          title: "Criar fila de notificacoes (Redis Stream)"
+          type: development
+          description: |
+            Enfileirar alertas disparados para processamento assincrono
+          acceptance_criteria:
+            - "Redis Stream: alert_events"
+            - "Consumer group para notifier"
+            - "Mensagem com dados completos do alerta"
+          estimated_hours: 3
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-142]
+          assigned_sprint: 3
+          labels: ["backend", "messaging"]
+
+        - id: TASK-144
+          title: "Integrar avaliacao com scheduler de metricas"
+          type: development
+          description: |
+            Avaliar alertas apos calculo de metricas
+          acceptance_criteria:
+            - "Evento MetricsCalculated dispara avaliacao"
+            - "Processamento em < 5 segundos"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-143, TASK-031]
+          assigned_sprint: 3
+          labels: ["backend", "integration"]
+
+        - id: TASK-145
+          title: "Implementar metricas de performance"
+          type: development
+          description: |
+            Expor metricas de avaliacao de alertas
+          acceptance_criteria:
+            - "alertas_avaliados_total"
+            - "alertas_disparados_total"
+            - "avaliacao_latency_seconds"
+            - "fila_backlog"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-144]
+          assigned_sprint: 3
+          labels: ["backend", "observability"]
+
+        - id: TASK-146
+          title: "Testes de performance da engine"
+          type: testing
+          description: |
+            Load test com 10.000 regras
+          acceptance_criteria:
+            - "10.000 regras em < 10 segundos"
+            - "Memory < 1GB"
+            - "CPU < 50% steady state"
+          estimated_hours: 4
+          story_points: 1
+          priority: high
+          dependencies: [TASK-145]
+          assigned_sprint: 3
+          labels: ["testing", "performance"]
+
+  # ==========================================================================
+  # EPIC-004: DASHBOARD
+  # ==========================================================================
+  epic_004_tasks:
+    epic_id: EPIC-004
+    name: "Interface de Usuario (Dashboard)"
+    total_tasks: 26
+    story_points: 38
+
+    # STORY-015: Watchlist de ativos
+    story_015_tasks:
+      story_id: STORY-015
+      story_title: "Watchlist de ativos"
+      story_points: 5
+      tasks:
+        - id: TASK-150
+          title: "Criar entidade WatchlistItem e API"
+          type: development
+          description: |
+            Backend para watchlist
+          acceptance_criteria:
+            - "CRUD de watchlist items"
+            - "Limite: 5 (free), ilimitado (premium)"
+            - "Ordenacao customizada"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-040]
+          assigned_sprint: 4
+          labels: ["backend", "api"]
+
+        - id: TASK-151
+          title: "Criar componente WatchlistCard"
+          type: development
+          description: |
+            Card de ativo na watchlist
+          acceptance_criteria:
+            - "Exibir: simbolo, preco, ATR, variacao"
+            - "Indicador visual de volatilidade"
+            - "Responsivo"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-002]
+          assigned_sprint: 4
+          labels: ["frontend", "component"]
+
+        - id: TASK-152
+          title: "Criar pagina de watchlist"
+          type: development
+          description: |
+            Pagina principal com lista de ativos
+          acceptance_criteria:
+            - "Grid de WatchlistCards"
+            - "Botao de adicionar ativo"
+            - "Auto-refresh a cada 60s"
+          estimated_hours: 4
+          story_points: 1
+          priority: high
+          dependencies: [TASK-151, TASK-150]
+          assigned_sprint: 4
+          labels: ["frontend", "page"]
+
+        - id: TASK-153
+          title: "Criar modal de adicionar ativo"
+          type: development
+          description: |
+            Modal com busca de ativos
+          acceptance_criteria:
+            - "Busca por simbolo ou nome"
+            - "Sugestoes durante digitacao"
+            - "Feedback de limite atingido"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-152]
+          assigned_sprint: 4
+          labels: ["frontend", "component"]
+
+        - id: TASK-154
+          title: "Implementar drag-and-drop de ordenacao"
+          type: development
+          description: |
+            Reordenar ativos na watchlist
+          acceptance_criteria:
+            - "Drag and drop funcional"
+            - "Persistir ordem no backend"
+            - "Animacao suave"
+          estimated_hours: 3
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-152]
+          assigned_sprint: 4
+          labels: ["frontend", "ux"]
+
+    # STORY-016: Grafico de volatilidade historica
+    story_016_tasks:
+      story_id: STORY-016
+      story_title: "Grafico de volatilidade historica"
+      story_points: 5
+      tasks:
+        - id: TASK-160
+          title: "Integrar Recharts no projeto"
+          type: development
+          description: |
+            Configurar biblioteca de graficos
+          acceptance_criteria:
+            - "Recharts instalado"
+            - "Tema customizado para cores do projeto"
+            - "Componente base configurado"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-002]
+          assigned_sprint: 4
+          labels: ["frontend", "setup"]
+
+        - id: TASK-161
+          title: "Criar componente VolatilityChart"
+          type: development
+          description: |
+            Grafico de linha para ATR historico
+          acceptance_criteria:
+            - "Linha de ATR"
+            - "Linha de media movel"
+            - "Zonas coloridas (alta/baixa)"
+            - "Tooltip com valores"
+          estimated_hours: 4
+          story_points: 2
+          priority: medium
+          dependencies: [TASK-160]
+          assigned_sprint: 4
+          labels: ["frontend", "component"]
+
+        - id: TASK-162
+          title: "Criar pagina de detalhes do ativo"
+          type: development
+          description: |
+            Pagina com grafico e metricas detalhadas
+          acceptance_criteria:
+            - "Header com info do ativo"
+            - "Grafico de volatilidade"
+            - "Cards de metricas"
+            - "Botao de criar alerta"
+          estimated_hours: 4
+          story_points: 2
+          priority: medium
+          dependencies: [TASK-161]
+          assigned_sprint: 4
+          labels: ["frontend", "page"]
+
+        - id: TASK-163
+          title: "Implementar responsividade do grafico"
+          type: development
+          description: |
+            Grafico responsivo para mobile
+          acceptance_criteria:
+            - "Funcional em telas pequenas"
+            - "Touch-friendly em mobile"
+            - "Lazy loading de dados"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: medium
+          dependencies: [TASK-161]
+          assigned_sprint: 4
+          labels: ["frontend", "responsive"]
+
+    # STORY-017: Formulario de configuracao de alertas
+    story_017_tasks:
+      story_id: STORY-017
+      story_title: "Formulario de configuracao de alertas"
+      story_points: 5
+      tasks:
+        - id: TASK-170
+          title: "Criar wizard de criacao de alerta (passo 1)"
+          type: development
+          description: |
+            Selecao de ativo
+          acceptance_criteria:
+            - "Busca de ativo"
+            - "Mostrar metricas atuais"
+            - "Navegacao para proximo passo"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-002]
+          assigned_sprint: 4
+          labels: ["frontend", "form"]
+
+        - id: TASK-171
+          title: "Criar wizard de criacao de alerta (passo 2)"
+          type: development
+          description: |
+            Selecao de tipo de alerta
+          acceptance_criteria:
+            - "Opcoes em linguagem simples"
+            - "Descricao de cada tipo"
+            - "Indicacao de features premium"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-170]
+          assigned_sprint: 4
+          labels: ["frontend", "form"]
+
+        - id: TASK-172
+          title: "Criar wizard de criacao de alerta (passo 3)"
+          type: development
+          description: |
+            Configuracao de threshold
+          acceptance_criteria:
+            - "Slider para threshold"
+            - "Preview do valor resultante"
+            - "Selecao de canais"
+            - "Resumo antes de salvar"
+          estimated_hours: 4
+          story_points: 2
+          priority: high
+          dependencies: [TASK-171]
+          assigned_sprint: 4
+          labels: ["frontend", "form"]
+
+        - id: TASK-173
+          title: "Integrar formulario com API"
+          type: development
+          description: |
+            Submissao do formulario
+          acceptance_criteria:
+            - "Chamada a POST /api/v1/alerts"
+            - "Tratamento de erros"
+            - "Redirect para lista de alertas"
+            - "Toast de sucesso"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-172]
+          assigned_sprint: 4
+          labels: ["frontend", "integration"]
+
+    # STORY-018: Autenticacao e registro de usuarios
+    story_018_tasks:
+      story_id: STORY-018
+      story_title: "Autenticacao e registro de usuarios"
+      story_points: 5
+      tasks:
+        - id: TASK-180
+          title: "Implementar endpoints de autenticacao"
+          type: development
+          description: |
+            APIs de registro, login, logout, refresh
+          acceptance_criteria:
+            - "POST /auth/register"
+            - "POST /auth/login"
+            - "POST /auth/refresh"
+            - "POST /auth/logout"
+            - "JWT com RS256"
+          estimated_hours: 6
+          story_points: 2
+          priority: critical
+          dependencies: [TASK-001]
+          assigned_sprint: 4
+          labels: ["backend", "auth"]
+
+        - id: TASK-181
+          title: "Implementar rate limiting de login"
+          type: development
+          description: |
+            Protecao contra brute force
+          acceptance_criteria:
+            - "5 tentativas em 15 min por IP"
+            - "Bloqueio temporario"
+            - "Log de tentativas"
+          estimated_hours: 2
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-180]
+          assigned_sprint: 4
+          labels: ["backend", "security"]
+
+        - id: TASK-182
+          title: "Criar paginas de login e registro"
+          type: development
+          description: |
+            Formularios de autenticacao
+          acceptance_criteria:
+            - "Pagina de login"
+            - "Pagina de registro"
+            - "Validacao client-side"
+            - "Checkbox LGPD"
+          estimated_hours: 4
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-002]
+          assigned_sprint: 4
+          labels: ["frontend", "auth"]
+
+        - id: TASK-183
+          title: "Implementar fluxo de recuperacao de senha"
+          type: development
+          description: |
+            Forgot password e reset
+          acceptance_criteria:
+            - "Formulario forgot password"
+            - "Email com link de reset"
+            - "Pagina de reset"
+            - "Token expira em 1h"
+          estimated_hours: 4
+          story_points: 1
+          priority: high
+          dependencies: [TASK-180]
+          assigned_sprint: 4
+          labels: ["backend", "frontend", "auth"]
+
+    # STORY-019: Pagina de upgrade para premium
+    story_019_tasks:
+      story_id: STORY-019
+      story_title: "Pagina de upgrade para premium"
+      story_points: 3
+      tasks:
+        - id: TASK-190
+          title: "Integrar Stripe Checkout"
+          type: development
+          description: |
+            Backend para integracao Stripe
+          acceptance_criteria:
+            - "Endpoint de criacao de checkout session"
+            - "Webhook de confirmacao"
+            - "Atualizacao de tier no banco"
+          estimated_hours: 6
+          story_points: 2
+          priority: medium
+          dependencies: [TASK-180]
+          assigned_sprint: 4
+          labels: ["backend", "payments"]
+
+        - id: TASK-191
+          title: "Criar pagina de pricing"
+          type: development
+          description: |
+            Comparacao free vs premium
+          acceptance_criteria:
+            - "Tabela comparativa"
+            - "Botao de upgrade"
+            - "Redirect para Stripe Checkout"
+          estimated_hours: 3
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-190]
+          assigned_sprint: 4
+          labels: ["frontend", "page"]
+
+  # ==========================================================================
+  # EPIC-005: NOTIFICACOES
+  # ==========================================================================
+  epic_005_tasks:
+    epic_id: EPIC-005
+    name: "Notificacoes Multi-Canal"
+    total_tasks: 18
+    story_points: 24
+
+    # STORY-020: Notificacao por email
+    story_020_tasks:
+      story_id: STORY-020
+      story_title: "Notificacao por email"
+      story_points: 3
+      tasks:
+        - id: TASK-200
+          title: "Integrar SendGrid para envio de emails"
+          type: development
+          description: |
+            Configurar cliente SendGrid
+          acceptance_criteria:
+            - "SendGrid SDK configurado"
+            - "API key via Key Vault"
+            - "Sender verificado"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: critical
+          dependencies: [TASK-001]
+          assigned_sprint: 5
+          labels: ["backend", "integration"]
+
+        - id: TASK-201
+          title: "Criar templates de email"
+          type: development
+          description: |
+            Templates HTML para alertas
+          acceptance_criteria:
+            - "Template responsivo"
+            - "Variaveis para dados do alerta"
+            - "Link para dashboard"
+            - "Unsubscribe link"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-200]
+          assigned_sprint: 5
+          labels: ["backend", "email"]
+
+        - id: TASK-202
+          title: "Criar servico EmailNotificationService"
+          type: development
+          description: |
+            Servico para envio de emails
+          acceptance_criteria:
+            - "Consumir fila de notificacoes"
+            - "Renderizar template"
+            - "Enviar via SendGrid"
+            - "Retry em falha"
+          estimated_hours: 3
+          story_points: 1
+          priority: critical
+          dependencies: [TASK-201, TASK-143]
+          assigned_sprint: 5
+          labels: ["backend", "notifications"]
+
+        - id: TASK-203
+          title: "Testes de email"
+          type: testing
+          description: |
+            Testes de envio de email
+          acceptance_criteria:
+            - "Teste de renderizacao de template"
+            - "Teste de envio (sandbox)"
+            - "Teste de retry"
+          estimated_hours: 2
+          story_points: 0.5
+          priority: high
+          dependencies: [TASK-202]
+          assigned_sprint: 5
+          labels: ["testing"]
+
+    # STORY-021: Notificacao push (PWA)
+    story_021_tasks:
+      story_id: STORY-021
+      story_title: "Notificacao push (PWA)"
+      story_points: 5
+      tasks:
+        - id: TASK-210
+          title: "Configurar Service Worker para push"
+          type: development
+          description: |
+            Setup de Service Worker com Web Push API
+          acceptance_criteria:
+            - "Service Worker registrado"
+            - "VAPID keys geradas"
+            - "Subscription endpoint salvo"
+          estimated_hours: 4
+          story_points: 2
+          priority: high
+          dependencies: [TASK-002]
+          assigned_sprint: 5
+          labels: ["frontend", "pwa"]
+
+        - id: TASK-211
+          title: "Criar endpoint de registro de push subscription"
+          type: development
+          description: |
+            API para salvar subscription do usuario
+          acceptance_criteria:
+            - "POST /api/v1/notifications/push/subscribe"
+            - "Armazenar subscription no banco"
+            - "Vinculada ao usuario"
+          estimated_hours: 2
+          story_points: 1
+          priority: high
+          dependencies: [TASK-210]
+          assigned_sprint: 5
+          labels: ["backend", "api"]
+
+        - id: TASK-212
+          title: "Criar servico PushNotificationService"
+          type: development
+          description: |
+            Servico para envio de push notifications
+          acceptance_criteria:
+            - "Consumir fila de notificacoes"
+            - "Enviar via Web Push"
+            - "Tratar subscriptions expiradas"
+          estimated_hours: 3
+          story_points: 1
+          priority: high
+          dependencies: [TASK-211, TASK-143]
+          assigned_sprint: 5
+          labels: ["backend", "notifications"]
+
+        - id: TASK-213
+          title: "Configurar manifest.json para PWA"
+          type: development
+          description: |
+            PWA instalavel
+          acceptance_criteria:
+            - "manifest.json configurado"
+            - "Icons em varios tamanhos"
+            - "Start URL correto"
+            - "Installable prompt"
+          estimated_hours: 2
+          story_points: 1
+          priority: medium
+          dependencies: [TASK-210]
+          assigned_sprint: 5
+          labels: ["frontend", "pwa"]
+
+    # STORY-022: Notificacao por SMS (Premium)
+    story_022_tasks:
+      story_id: STORY-022
+      story_title: "Notificacao por SMS (Premium)"
+      story_points: 3
+      tasks:
+        - id: TASK-220
+          title: "Integrar Zenvia para SMS"
+          type: development
+          description: |
+            Configurar cliente Zenvia
+          acceptance_criteria:
+            - "SDK configurado"
+            - "API key via Key Vault"
+            - "Apenas premium"
+          estimated_hours: 2
+          story_points: 1
+          priority: low
+          dependencies: [TASK-001]
+          assigned_sprint: 5
+          labels: ["backend", "integration"]
+
+        - id: TASK-221
+          title: "Criar servico SmsNotificationService"
+          type: development
+          description: |
+            Servico para envio de SMS
+          acceptance_criteria:
+            - "Verificar tier premium"
+            - "Limite 30 SMS/mes"
+            - "Formato conciso"
+          estimated_hours: 3
+          story_points: 1
+          priority: low
+          dependencies: [TASK-220, TASK-143]
+          assigned_sprint: 5
+          labels: ["backend", "notifications"]
+
+        - id: TASK-222
+          title: "Implementar verificacao de numero por SMS"
+          type: development
+          description: |
+            Verificar numero antes de habilitar
+          acceptance_criteria:
+            - "Enviar codigo de verificacao"
+            - "Validar codigo"
+            - "Marcar numero como verificado"
+          estimated_hours: 3
+          story_points: 1
+          priority: low
+          dependencies: [TASK-221]
+          assigned_sprint: 5
+          labels: ["backend", "verification"]
+
+    # STORY-023: Notificacao por Telegram (Premium)
+    story_023_tasks:
+      story_id: STORY-023
+      story_title: "Notificacao por Telegram (Premium)"
+      story_points: 3
+      tasks:
+        - id: TASK-230
+          title: "Criar Telegram Bot"
+          type: development
+          description: |
+            Registrar bot e configurar comandos
+          acceptance_criteria:
+            - "Bot criado via @BotFather"
+            - "Token via Key Vault"
+            - "Comandos: /start, /stop, /status"
+          estimated_hours: 2
+          story_points: 1
+          priority: low
+          dependencies: []
+          assigned_sprint: 5
+          labels: ["backend", "integration"]
+
+        - id: TASK-231
+          title: "Implementar vinculacao de conta"
+          type: development
+          description: |
+            Vincular usuario ao chat_id do Telegram
+          acceptance_criteria:
+            - "Comando /start com token de vinculacao"
+            - "Armazenar chat_id"
+            - "Comando /stop para desvincular"
+          estimated_hours: 3
+          story_points: 1
+          priority: low
+          dependencies: [TASK-230]
+          assigned_sprint: 5
+          labels: ["backend", "integration"]
+
+        - id: TASK-232
+          title: "Criar servico TelegramNotificationService"
+          type: development
+          description: |
+            Servico para envio via Telegram
+          acceptance_criteria:
+            - "Verificar tier premium"
+            - "Mensagem formatada com Markdown"
+            - "Tratar chat_id invalido"
+          estimated_hours: 2
+          story_points: 1
+          priority: low
+          dependencies: [TASK-231, TASK-143]
+          assigned_sprint: 5
+          labels: ["backend", "notifications"]
+
+  # ==========================================================================
+  # SPRINT 6 - POLIMENTO E TESTES
+  # ==========================================================================
+  sprint_6_polish:
+    name: "Sprint 6 - Polimento e Testes"
+    description: "Testes de integracao, performance, bug fixes"
+    estimated_duration: "1 semana"
+    story_points: 13
+
+    tasks:
+      - id: TASK-300
+        title: "Executar testes E2E completos"
+        type: testing
+        description: |
+          Testes end-to-end com Playwright
+        acceptance_criteria:
+          - "Fluxo de registro"
+          - "Fluxo de criacao de alerta"
+          - "Fluxo de recebimento de notificacao"
+        estimated_hours: 8
+        story_points: 3
+        priority: high
+        dependencies: ["all previous sprints"]
+        assigned_sprint: 6
+        labels: ["testing", "e2e"]
+
+      - id: TASK-301
+        title: "Executar testes de carga"
+        type: testing
+        description: |
+          Load testing com k6
+        acceptance_criteria:
+          - "100 usuarios concorrentes"
+          - "10.000 alertas ativos"
+          - "Latencia p95 < 500ms"
+        estimated_hours: 8
+        story_points: 3
+        priority: high
+        dependencies: [TASK-300]
+        assigned_sprint: 6
+        labels: ["testing", "performance"]
+
+      - id: TASK-302
+        title: "Resolver bugs encontrados em testes"
+        type: development
+        description: |
+          Buffer para correcao de bugs
+        acceptance_criteria:
+          - "Bugs criticos resolvidos"
+          - "Bugs de alta prioridade resolvidos"
+        estimated_hours: 16
+        story_points: 5
+        priority: high
+        dependencies: [TASK-301]
+        assigned_sprint: 6
+        labels: ["bugfix"]
+
+      - id: TASK-303
+        title: "Revisar documentacao"
+        type: documentation
+        description: |
+          Atualizar README, API docs, runbooks
+        acceptance_criteria:
+          - "README atualizado"
+          - "OpenAPI spec completa"
+          - "Runbooks de operacao"
+        estimated_hours: 4
+        story_points: 1
+        priority: medium
+        dependencies: [TASK-302]
+        assigned_sprint: 6
+        labels: ["documentation"]
+
+      - id: TASK-304
+        title: "Preparar para deploy de producao"
+        type: infrastructure
+        description: |
+          Finalizar configuracao de producao
+        acceptance_criteria:
+          - "Terraform production aplicado"
+          - "Secrets configurados"
+          - "DNS configurado"
+          - "Smoke tests passando"
+        estimated_hours: 4
+        story_points: 1
+        priority: critical
+        dependencies: [TASK-303]
+        assigned_sprint: 6
+        labels: ["infrastructure", "deploy"]
+
+  # ==========================================================================
+  # SUMMARY
+  # ==========================================================================
+  summary:
+    total_tasks: 127
+    total_story_points: 191
+    tasks_by_sprint:
+      sprint_0: 8
+      sprint_1: 24
+      sprint_2: 25
+      sprint_3: 28
+      sprint_4: 26
+      sprint_5: 11
+      sprint_6: 5
+
+    tasks_by_type:
+      development: 95
+      testing: 25
+      setup: 7
+
+    critical_path:
+      - TASK-000  # Estrutura repositorio
+      - TASK-001  # Solucao .NET
+      - TASK-010  # Interface market data
+      - TASK-011  # Alpha Vantage client
+      - TASK-050  # Interface volatility
+      - TASK-054  # Persistir ATR
+      - TASK-100  # Entidade Alert
+      - TASK-140  # Alert evaluation service
+      - TASK-143  # Fila de notificacoes
+      - TASK-202  # Email notification service

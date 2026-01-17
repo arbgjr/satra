@@ -1,0 +1,527 @@
+# =============================================================================
+# Risk Register - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 3 - Implementation Planning
+# Created: 2026-01-17T19:35:18Z
+# Author: delivery-planner
+# =============================================================================
+
+risk_register:
+  metadata:
+    project_id: proj-75602fb4
+    version: "1.0.0"
+    created_at: "2026-01-17T19:35:18Z"
+    updated_at: "2026-01-17T19:35:18Z"
+    author: delivery-planner
+    review_frequency: "weekly"
+
+  scoring:
+    probability:
+      low: 1
+      medium: 2
+      high: 3
+      very_high: 4
+
+    impact:
+      low: 1
+      medium: 2
+      high: 3
+      critical: 4
+
+    risk_score: "probability * impact"
+    thresholds:
+      low: "1-3"
+      medium: "4-6"
+      high: "8-9"
+      critical: "12-16"
+
+  # ==========================================================================
+  # TECHNICAL RISKS
+  # ==========================================================================
+  technical_risks:
+    - id: RISK-T001
+      title: "Alpha Vantage Rate Limit Blocking Development"
+      category: integration
+      description: |
+        Free tier do Alpha Vantage tem limite de 5 calls/min e 500 calls/dia.
+        Desenvolvimento intenso pode esgotar limites rapidamente.
+      probability: medium
+      impact: medium
+      risk_score: 4
+      status: active
+
+      affected_tasks:
+        - TASK-011
+        - TASK-031
+        - TASK-055
+
+      mitigation:
+        - action: "Usar dados mockados para testes locais"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Implementar cache agressivo durante desenvolvimento"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Considerar upgrade para tier pago se necessario"
+          owner: "PO"
+          status: planned
+
+      contingency: "Usar dados historicos salvos localmente"
+      monitoring: "Monitorar uso diario de API"
+
+    - id: RISK-T002
+      title: "Performance da Engine de Alertas"
+      category: performance
+      description: |
+        Engine precisa avaliar 10.000 regras em < 10 segundos.
+        Queries mal otimizadas ou processamento ineficiente podem impactar SLA.
+      probability: medium
+      impact: high
+      risk_score: 6
+      status: active
+
+      affected_tasks:
+        - TASK-140
+        - TASK-144
+        - TASK-146
+
+      mitigation:
+        - action: "Implementar batching de avaliacoes"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Usar indices apropriados no banco"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Load test em cada sprint"
+          owner: "QA"
+          status: planned
+
+      contingency: "Escalar workers horizontalmente"
+      monitoring: "Metricas de tempo de avaliacao no Prometheus"
+
+    - id: RISK-T003
+      title: "Discrepancia em Calculos de Volatilidade"
+      category: calculation
+      description: |
+        Calculos proprios de ATR, Bollinger, Beta podem divergir de valores
+        oficiais da B3 ou outros provedores, gerando desconfianca.
+      probability: medium
+      impact: high
+      risk_score: 6
+      status: active
+
+      affected_tasks:
+        - TASK-052
+        - TASK-055
+        - TASK-071
+        - TASK-082
+
+      mitigation:
+        - action: "Validar calculos contra Alpha Vantage"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Documentar formulas usadas publicamente"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Criar suite de testes com dados de referencia"
+          owner: "QA"
+          status: planned
+
+      contingency: "Usar valores pre-calculados do Alpha Vantage"
+      monitoring: "Comparacao periodica com fontes externas"
+
+    - id: RISK-T004
+      title: "Problemas de Compatibilidade PWA/Push"
+      category: frontend
+      description: |
+        Push notifications em Safari/iOS tem limitacoes historicas.
+        PWA pode ter comportamento inconsistente entre browsers.
+      probability: medium
+      impact: medium
+      risk_score: 4
+      status: active
+
+      affected_tasks:
+        - TASK-210
+        - TASK-212
+        - TASK-213
+
+      mitigation:
+        - action: "Testar em multiplos browsers desde cedo"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Implementar fallback para polling"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Priorizar email como canal confiavel"
+          owner: "Dev Team"
+          status: planned
+
+      contingency: "Focar em email + web como canais primarios"
+      monitoring: "Metricas de delivery por canal"
+
+    - id: RISK-T005
+      title: "Complexidade de Deduplicacao de Alertas"
+      category: logic
+      description: |
+        Evitar alertas duplicados em cenarios de race condition ou
+        processamento paralelo e complexo.
+      probability: low
+      impact: high
+      risk_score: 3
+      status: active
+
+      affected_tasks:
+        - TASK-141
+
+      mitigation:
+        - action: "Usar Redis para locking distribuido"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Implementar idempotencia com hash de evento"
+          owner: "Dev Team"
+          status: planned
+
+      contingency: "Aceitar rate menor de alertas se dedup falhar"
+      monitoring: "Metricas de alertas duplicados"
+
+  # ==========================================================================
+  # SCHEDULE RISKS
+  # ==========================================================================
+  schedule_risks:
+    - id: RISK-S001
+      title: "Sprints com Capacidade Excedida"
+      category: planning
+      description: |
+        Sprints 2, 3 e 4 tem mais de 100% de capacidade assumida.
+        Risco de atraso se velocity real for menor.
+      probability: medium
+      impact: medium
+      risk_score: 4
+      status: active
+
+      affected_sprints:
+        - sprint_2
+        - sprint_3
+        - sprint_4
+
+      mitigation:
+        - action: "Mover tasks nao-criticas para sprints posteriores"
+          owner: "Scrum Master"
+          status: planned
+
+        - action: "Avaliar velocity real apos Sprint 1"
+          owner: "Scrum Master"
+          status: planned
+
+        - action: "Identificar tasks que podem ser cortadas"
+          owner: "PO"
+          status: planned
+
+      contingency: "Estender timeline em 1-2 semanas"
+      monitoring: "Burndown chart por sprint"
+
+    - id: RISK-S002
+      title: "Dependencias Externas Atrasando Setup"
+      category: dependencies
+      description: |
+        Azure subscription, API keys e configuracoes podem atrasar
+        se dependencias externas nao forem resolvidas cedo.
+      probability: low
+      impact: high
+      risk_score: 3
+      status: active
+
+      affected_tasks:
+        - TASK-006
+        - TASK-200
+        - TASK-190
+
+      mitigation:
+        - action: "Listar todas as dependencias externas"
+          owner: "Scrum Master"
+          status: done
+
+        - action: "Iniciar processo de provisao na semana 0"
+          owner: "DevOps"
+          status: planned
+
+        - action: "Usar mocks/sandboxes enquanto aguarda"
+          owner: "Dev Team"
+          status: planned
+
+      contingency: "Escalar para management se bloqueado"
+      monitoring: "Checklist de dependencias externas"
+
+    - id: RISK-S003
+      title: "Descoberta de Requisitos Durante Desenvolvimento"
+      category: scope
+      description: |
+        Novos requisitos ou esclarecimentos podem surgir durante
+        implementacao, aumentando escopo.
+      probability: medium
+      impact: medium
+      risk_score: 4
+      status: active
+
+      affected_sprints: all
+
+      mitigation:
+        - action: "Refinement semanal para esclarecer duvidas"
+          owner: "PO"
+          status: planned
+
+        - action: "Documentar decisoes em ADRs"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Buffer de 10-15% no timeline"
+          owner: "Scrum Master"
+          status: done
+
+      contingency: "Negociar escopo vs timeline com PO"
+      monitoring: "Numero de change requests por sprint"
+
+  # ==========================================================================
+  # RESOURCE RISKS
+  # ==========================================================================
+  resource_risks:
+    - id: RISK-R001
+      title: "Equipe Pequena / Single Point of Failure"
+      category: team
+      description: |
+        Projeto depende de poucos desenvolvedores.
+        Ausencia de membro chave pode impactar timeline.
+      probability: low
+      impact: high
+      risk_score: 3
+      status: active
+
+      mitigation:
+        - action: "Documentar decisoes e implementacoes"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Code review para conhecimento compartilhado"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Pair programming em areas criticas"
+          owner: "Dev Team"
+          status: planned
+
+      contingency: "Ajustar timeline se necessario"
+      monitoring: "Alocacao de equipe semanal"
+
+    - id: RISK-R002
+      title: "Custo de Azure Maior que Previsto"
+      category: cost
+      description: |
+        Estimativa de $100-150/mes pode ser otimista.
+        Uso real pode exceder budget.
+      probability: low
+      impact: medium
+      risk_score: 2
+      status: active
+
+      affected_tasks:
+        - TASK-006
+
+      mitigation:
+        - action: "Configurar alertas de budget no Azure"
+          owner: "DevOps"
+          status: planned
+
+        - action: "Usar Free Tier sempre que possivel"
+          owner: "DevOps"
+          status: planned
+
+        - action: "Revisar custos semanalmente"
+          owner: "PO"
+          status: planned
+
+      contingency: "Reduzir recursos ou otimizar uso"
+      monitoring: "Azure Cost Management"
+
+  # ==========================================================================
+  # BUSINESS RISKS
+  # ==========================================================================
+  business_risks:
+    - id: RISK-B001
+      title: "Mudanca nos Termos do Alpha Vantage"
+      category: vendor
+      description: |
+        Alpha Vantage pode mudar termos, precos ou descontinuar free tier.
+      probability: low
+      impact: critical
+      risk_score: 4
+      status: active
+
+      mitigation:
+        - action: "Abstrair cliente de market data"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Identificar provedores alternativos"
+          owner: "PO"
+          status: planned
+
+        - action: "Armazenar dados historicos localmente"
+          owner: "Dev Team"
+          status: planned
+
+      contingency: "Migrar para outro provedor (Yahoo Finance, etc)"
+      monitoring: "Monitorar changelog Alpha Vantage"
+
+    - id: RISK-B002
+      title: "Baixa Adocao de Usuarios"
+      category: market
+      description: |
+        Usuarios podem nao ver valor no produto ou preferir alternativas.
+      probability: medium
+      impact: high
+      risk_score: 6
+      status: active
+
+      mitigation:
+        - action: "Alpha test com usuarios reais"
+          owner: "PO"
+          status: planned
+
+        - action: "Coletar feedback e iterar"
+          owner: "PO"
+          status: planned
+
+        - action: "Marketing e conteudo educacional"
+          owner: "Marketing"
+          status: planned
+
+      contingency: "Pivotar baseado em feedback"
+      monitoring: "Metricas de uso e NPS"
+
+    - id: RISK-B003
+      title: "Problemas de Compliance CVM"
+      category: regulatory
+      description: |
+        Sistema pode ser interpretado como assessoria de investimentos.
+      probability: low
+      impact: critical
+      risk_score: 4
+      status: active
+
+      mitigation:
+        - action: "Disclaimers claros em todas as interfaces"
+          owner: "Dev Team"
+          status: planned
+
+        - action: "Revisao juridica de termos de uso"
+          owner: "Legal"
+          status: planned
+
+        - action: "Nenhuma recomendacao de compra/venda"
+          owner: "PO"
+          status: planned
+
+      contingency: "Ajustar produto conforme orientacao legal"
+      monitoring: "Revisao juridica pre-lancamento"
+
+  # ==========================================================================
+  # SECURITY RISKS
+  # ==========================================================================
+  security_risks:
+    - id: RISK-SEC001
+      title: "Vazamento de Credenciais"
+      category: security
+      description: |
+        API keys, tokens ou secrets podem ser expostos acidentalmente.
+      probability: low
+      impact: critical
+      risk_score: 4
+      status: active
+
+      mitigation:
+        - action: "Usar Azure Key Vault para secrets"
+          owner: "DevOps"
+          status: planned
+
+        - action: "GitHub secret scanning habilitado"
+          owner: "DevOps"
+          status: planned
+
+        - action: ".gitignore configurado corretamente"
+          owner: "Dev Team"
+          status: planned
+
+      contingency: "Revogar e rotacionar secrets imediatamente"
+      monitoring: "GitHub Secret Scanning alerts"
+
+    - id: RISK-SEC002
+      title: "Vulnerabilidades em Dependencias"
+      category: security
+      description: |
+        Dependencias de terceiros podem ter vulnerabilidades conhecidas.
+      probability: medium
+      impact: medium
+      risk_score: 4
+      status: active
+
+      mitigation:
+        - action: "Dependabot habilitado"
+          owner: "DevOps"
+          status: planned
+
+        - action: "Trivy scan em imagens Docker"
+          owner: "DevOps"
+          status: planned
+
+        - action: "Atualizar dependencias regularmente"
+          owner: "Dev Team"
+          status: planned
+
+      contingency: "Patch ou upgrade imediato quando detectado"
+      monitoring: "Dependabot alerts"
+
+  # ==========================================================================
+  # SUMMARY
+  # ==========================================================================
+  summary:
+    total_risks: 15
+    by_severity:
+      critical: 0
+      high: 2
+      medium: 10
+      low: 3
+
+    by_category:
+      technical: 5
+      schedule: 3
+      resource: 2
+      business: 3
+      security: 2
+
+    top_risks:
+      - RISK-T002  # Performance da engine
+      - RISK-T003  # Discrepancia em calculos
+      - RISK-B002  # Baixa adocao
+
+    immediate_actions:
+      - "Validar calculos de volatilidade cedo (Sprint 2)"
+      - "Implementar load tests desde Sprint 3"
+      - "Obter dependencias externas na semana 0"
+      - "Configurar secret scanning imediatamente"
+
+  review_schedule:
+    frequency: "weekly"
+    meeting: "Sprint Retrospective"
+    owner: "Scrum Master"
+    escalation_path: "PO -> Engineering Manager"
