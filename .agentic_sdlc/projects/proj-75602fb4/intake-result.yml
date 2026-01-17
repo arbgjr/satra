@@ -1,0 +1,287 @@
+intake_result:
+  id: "REQ-20260117-001"
+  title: "Sistema de Alertas B3 - Real-time Volatility Monitoring"
+  summary: >
+    Sistema de alertas em tempo real para monitoramento de volatilidade de ativos
+    negociados na B3 (Bolsa de Valores Brasileira). O sistema deve capturar dados
+    de mercado, calcular metricas de volatilidade e disparar alertas quando
+    thresholds definidos pelo usuario forem atingidos.
+
+  created_at: '2026-01-17T03:39:03Z'
+  analyst: intake-analyst
+
+  extracted:
+    who:
+      requester: "arbgjr"
+      stakeholders:
+        - "Investidores individuais"
+        - "Traders"
+        - "Gestores de carteira"
+      end_users:
+        - "Investidores pessoa fisica"
+        - "Day traders"
+        - "Swing traders"
+
+    what:
+      problem: >
+        Investidores precisam monitorar volatilidade de ativos da B3 em tempo real
+        para tomar decisoes de compra/venda mais informadas. Atualmente nao ha
+        sistema acessivel que permita configurar alertas personalizados baseados
+        em metricas de volatilidade.
+      solution_hint: >
+        Sistema web/mobile que conecta a feeds de dados da B3, calcula volatilidade
+        (possivelmente usando indicadores como ATR, Bollinger Bands, desvio padrao)
+        e envia notificacoes quando condicoes configuradas sao atendidas.
+      scope:
+        included:
+          - Captura de dados de mercado da B3
+          - Calculo de metricas de volatilidade
+          - Configuracao de alertas pelo usuario
+          - Notificacoes em tempo real (push, email, SMS)
+          - Dashboard de monitoramento
+        excluded:
+          - Execucao automatica de ordens (trading automatizado)
+          - Recomendacoes de investimento
+          - Integracao com corretoras para ordem
+
+    why:
+      business_value: >
+        Permitir que investidores reajam rapidamente a mudancas de volatilidade,
+        potencialmente evitando perdas ou capturando oportunidades de mercado.
+      urgency: >
+        Mercado de capitais brasileiro em crescimento, demanda por ferramentas
+        de analise mais sofisticadas para investidor pessoa fisica.
+      impact_if_not_done: >
+        Investidores continuarao dependendo de ferramentas genericas ou
+        monitoramento manual, perdendo oportunidades e expostos a riscos.
+
+    when:
+      deadline: "Nao especificado"
+      dependencies:
+        - "Fonte de dados de mercado da B3 (API, WebSocket, ou provedor)"
+        - "Infraestrutura de processamento em tempo real"
+
+    constraints:
+      technical:
+        - "Latencia baixa para alertas em tempo real"
+        - "Escalabilidade para multiplos usuarios e ativos"
+        - "Disponibilidade durante horario de pregao (10h-17h BRT)"
+      business:
+        - "Nao pode oferecer recomendacoes de investimento (regulamentacao CVM)"
+        - "Deve deixar claro que nao e assessoria financeira"
+      regulatory:
+        - "LGPD: cadastro de usuarios com dados pessoais"
+        - "CVM: nao pode configurar como assessoria de investimentos"
+        - "Termos de uso dos dados da B3"
+
+  classification:
+    type: feature
+    priority:
+      level: medium
+      rationale: >
+        Projeto novo sem deadline critico, porem com potencial de mercado.
+        Priorizacao pode aumentar se houver janela de oportunidade identificada.
+    complexity:
+      level: 2
+      signals:
+        - "Novo sistema/produto (nao e feature em sistema existente)"
+        - "Integracao com fonte de dados externa (B3)"
+        - "Processamento em tempo real com requisitos de latencia"
+        - "Multiplos canais de notificacao"
+        - "Infraestrutura de streaming de dados"
+    risk:
+      level: medium
+      factors:
+        - "Dependencia de provedores de dados de mercado"
+        - "Complexidade de calculo de volatilidade em tempo real"
+        - "Regulamentacao do mercado financeiro"
+        - "Custos de infraestrutura para processamento real-time"
+
+  compliance_flags:
+    - flag: "LGPD"
+      reason: "Cadastro de usuarios com dados pessoais (email, telefone para notificacoes)"
+      severity: "medium"
+
+    - flag: "CVM"
+      reason: "Sistema relacionado a mercado financeiro, deve evitar caracterizacao como assessoria"
+      severity: "high"
+
+    - flag: "Termos B3"
+      reason: "Uso de dados de mercado da B3 requer conformidade com termos de licenciamento"
+      severity: "high"
+
+  data_classification:
+    personal_data:
+      - type: "email"
+        purpose: "Notificacoes de alerta"
+        sensitivity: "personal"
+      - type: "telefone"
+        purpose: "SMS de alerta (opcional)"
+        sensitivity: "personal"
+      - type: "nome"
+        purpose: "Identificacao do usuario"
+        sensitivity: "personal"
+
+    financial_data:
+      - type: "configuracoes_alertas"
+        purpose: "Preferencias do usuario"
+        sensitivity: "confidential"
+        note: "Pode revelar estrategias de investimento"
+
+    market_data:
+      - type: "cotacoes_b3"
+        purpose: "Calculo de volatilidade"
+        sensitivity: "public"
+        note: "Dados publicos, mas licenciamento pode aplicar"
+
+  technical_considerations:
+    architecture_hints:
+      - pattern: "Event-Driven Architecture"
+        reason: "Processamento reativo a eventos de mercado"
+      - pattern: "Stream Processing"
+        reason: "Calculo continuo de metricas de volatilidade"
+      - pattern: "WebSocket"
+        reason: "Notificacoes em tempo real para usuarios"
+
+    technology_candidates:
+      data_ingestion:
+        - "Apache Kafka"
+        - "Amazon Kinesis"
+        - "Redis Streams"
+      processing:
+        - "Apache Flink"
+        - "Spark Streaming"
+        - "Custom .NET/Python workers"
+      notification:
+        - "Firebase Cloud Messaging"
+        - "AWS SNS"
+        - "Twilio (SMS)"
+
+    integration_points:
+      - name: "B3 Market Data"
+        type: "external"
+        protocol: "WebSocket/REST"
+        note: "Provavelmente via Market Data Provider (Bloomberg, Refinitiv, ou B3 direto)"
+      - name: "Push Notification Service"
+        type: "external"
+        protocol: "REST"
+      - name: "SMS Gateway"
+        type: "external"
+        protocol: "REST"
+
+  recommended_flow:
+    complexity_level: 2
+    workflow: "full_sdlc"
+    phases:
+      - phase: 0
+        name: "Intake & Analysis"
+        status: "in_progress"
+      - phase: 1
+        name: "Requirements Gathering"
+        status: "pending"
+      - phase: 2
+        name: "Architecture & Design"
+        status: "pending"
+      - phase: 3
+        name: "Implementation Planning"
+        status: "pending"
+      - phase: 4
+        name: "Development"
+        status: "pending"
+      - phase: 5
+        name: "Quality Assurance"
+        status: "pending"
+      - phase: 6
+        name: "Deployment"
+        status: "pending"
+      - phase: 7
+        name: "Monitoring & Feedback"
+        status: "pending"
+    skip_phases: []
+    estimated_time: "2-4 semanas para planejamento completo (Phases 0-3)"
+    human_approval_gates:
+      - "Phase 0 -> Phase 1 (scope alignment)"
+      - "Phase 2 -> Phase 3 (architecture review)"
+      - "Phase 5 -> Phase 6 (quality gate)"
+      - "Phase 6 -> Phase 7 (deployment approval)"
+
+  open_questions:
+    blocking:
+      - question: "Qual sera a fonte de dados de mercado da B3?"
+        answer: "Free tier de algum servico"
+        answered_at: "2026-01-17T03:45:00Z"
+        answered_by: "arbgjr"
+        impact: "Define arquitetura e custos"
+
+      - question: "Qual modelo de negocio (monetizacao)?"
+        answer: "Freemium (basico gratis, premium pago)"
+        answered_at: "2026-01-17T03:45:00Z"
+        answered_by: "arbgjr"
+        impact: "Afeta requisitos de escalabilidade e features"
+
+      - question: "Quais metricas de volatilidade priorizar?"
+        answer: "ATR(14) + Desvio Padrao para tier gratuito; Bollinger Bands + Beta para tier premium"
+        answered_at: "2026-01-17T03:50:00Z"
+        answered_by: "arbgjr"
+        research_completed: true
+        research_file: ".agentic_sdlc/projects/proj-75602fb4/research/volatility-metrics-research.yml"
+        impact: "Define complexidade de calculos"
+        details:
+          free_tier:
+            - "ATR (Average True Range, 14 periodos) - prioridade 1"
+            - "Desvio Padrao Historico (30 dias) - prioridade 2"
+          premium_tier:
+            - "Bollinger Bands (20, 2) - prioridade 3"
+            - "Beta vs Ibovespa - prioridade 4"
+          data_source: "Alpha Vantage API (free tier)"
+
+    non_blocking:
+      - question: "Canais de notificacao prioritarios?"
+        options:
+          - "Push notification (mobile)"
+          - "Email"
+          - "SMS"
+          - "Telegram/WhatsApp"
+        default: "Push + Email"
+
+      - question: "Suporte a quais tipos de ativos?"
+        options:
+          - "Apenas acoes"
+          - "Acoes + FIIs"
+          - "Acoes + FIIs + ETFs"
+          - "Todos ativos B3"
+        default: "Acoes + FIIs inicialmente"
+
+      - question: "Necessita mobile app ou web-only?"
+        options:
+          - "Web only (PWA)"
+          - "Web + Mobile nativo"
+          - "Mobile-first"
+        default: "Web (PWA) inicialmente"
+
+  similar_requests:
+    internal: []
+    external_references:
+      - name: "TradingView Alerts"
+        relevance: "Modelo de referencia para alertas de mercado"
+      - name: "Thinkorswim Alerts"
+        relevance: "Referencia de plataforma profissional"
+      - name: "Yahoo Finance Alerts"
+        relevance: "Modelo freemium simples"
+
+  next_steps:
+    immediate:
+      - action: "Validar compliance com compliance-guardian"
+        agent: "compliance-guardian"
+        blocking: true
+      - action: "Responder open questions bloqueantes"
+        agent: "product-owner"
+        blocking: true
+
+    after_gate_0:
+      - action: "Domain research sobre mercado de capitais e volatilidade"
+        agent: "domain-researcher"
+      - action: "Pesquisar provedores de dados da B3"
+        agent: "doc-crawler"
+
+  next_agent: "compliance-guardian"

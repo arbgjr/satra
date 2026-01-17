@@ -1,0 +1,282 @@
+compliance_assessment:
+  request_id: "REQ-20260117-001"
+  assessed_at: '2026-01-17T03:40:15Z'
+  assessor: compliance-guardian
+
+  scope:
+    feature: "Sistema de Alertas B3 - Real-time Volatility Monitoring"
+    description: >
+      Sistema de alertas em tempo real para monitoramento de volatilidade de ativos
+      negociados na B3, com notificacoes personalizadas para usuarios.
+
+  data_classification:
+    personal_data:
+      - type: "personal"
+        examples:
+          - "nome"
+          - "email"
+          - "telefone"
+        volume: "Cadastro de usuarios"
+        retention: "Durante vigencia da conta + 5 anos"
+
+    financial_data:
+      - type: "confidential"
+        examples:
+          - "configuracoes de alertas do usuario"
+          - "historico de alertas disparados"
+        note: "Pode revelar estrategias de investimento do usuario"
+
+    market_data:
+      - type: "public"
+        examples:
+          - "cotacoes de ativos"
+          - "volumes negociados"
+        note: "Dados publicos, porem licenciamento pode aplicar"
+
+  applicable_regulations:
+    - regulation: "LGPD"
+      full_name: "Lei Geral de Protecao de Dados Pessoais"
+      articles:
+        - article: "Art. 7"
+          description: "Bases legais para tratamento de dados"
+          applicable_base: "Consentimento do titular (Art. 7, I)"
+        - article: "Art. 11"
+          description: "Tratamento de dados sensiveis"
+          note: "Nao aplicavel - nao tratamos dados sensiveis"
+        - article: "Art. 18"
+          description: "Direitos do titular"
+          requirements:
+            - "Acesso aos dados"
+            - "Correcao de dados"
+            - "Exclusao de dados"
+            - "Portabilidade"
+      status: "applicable"
+      severity: "medium"
+
+    - regulation: "CVM"
+      full_name: "Comissao de Valores Mobiliarios"
+      relevant_rules:
+        - rule: "ICVM 539"
+          description: "Atividade de administracao de carteiras"
+          note: "Sistema NAO administra carteiras - nao aplicavel"
+        - rule: "Assessoria de investimentos"
+          description: "Proibicao de recomendacoes sem certificacao"
+          note: "Sistema NAO faz recomendacoes - apenas alertas tecnicos"
+      status: "attention_required"
+      severity: "high"
+      requirements:
+        - "Disclaimer claro: 'Nao constitui recomendacao de investimento'"
+        - "Nao usar termos como 'oportunidade', 'comprar', 'vender'"
+        - "Alertas baseados apenas em metricas tecnicas, sem opiniao"
+
+    - regulation: "B3 Market Data Terms"
+      description: "Termos de uso dos dados de mercado da B3"
+      status: "investigation_required"
+      severity: "high"
+      requirements:
+        - "Verificar licenciamento necessario"
+        - "Compliance com termos de redistribuicao"
+        - "Possivel necessidade de contrato com B3 ou provedor"
+
+    - regulation: "CDC"
+      full_name: "Codigo de Defesa do Consumidor"
+      status: "applicable"
+      severity: "low"
+      requirements:
+        - "Termos de uso claros"
+        - "Politica de privacidade acessivel"
+        - "Canal de atendimento ao consumidor"
+
+  controls_assessment:
+    lgpd_controls:
+      - control: "Consentimento"
+        status: "required"
+        implementation: "Checkbox de aceite no cadastro"
+        finding: "Deve ser implementado no fluxo de registro"
+        severity: "blocker"
+        phase: "Phase 4 (Development)"
+
+      - control: "Finalidade especifica"
+        status: "required"
+        implementation: "Documentar na politica de privacidade"
+        finding: "Definir finalidades especificas para cada dado"
+        severity: "high"
+        phase: "Phase 1 (Requirements)"
+
+      - control: "Minimizacao de dados"
+        status: "compliant_by_design"
+        evidence: "Coletar apenas email/telefone para notificacoes"
+
+      - control: "Criptografia em transito"
+        status: "required"
+        implementation: "TLS 1.2+ obrigatorio"
+        finding: "Padrao de infraestrutura"
+        severity: "blocker"
+        phase: "Phase 4 (Development)"
+
+      - control: "Criptografia em repouso"
+        status: "required"
+        implementation: "Criptografar dados pessoais no banco"
+        finding: "Incluir na arquitetura"
+        severity: "high"
+        phase: "Phase 2 (Architecture)"
+
+      - control: "Direito de acesso"
+        status: "required"
+        implementation: "Endpoint GET /api/users/me/data"
+        finding: "Feature obrigatoria"
+        severity: "medium"
+        phase: "Phase 4 (Development)"
+
+      - control: "Direito de exclusao"
+        status: "required"
+        implementation: "Endpoint DELETE /api/users/me"
+        finding: "Feature obrigatoria"
+        severity: "medium"
+        phase: "Phase 4 (Development)"
+
+      - control: "Retencao de dados"
+        status: "required"
+        implementation: "Politica de 5 anos apos encerramento da conta"
+        finding: "Documentar e implementar job de limpeza"
+        severity: "medium"
+        phase: "Phase 2 (Architecture)"
+
+    cvm_controls:
+      - control: "Disclaimer anti-recomendacao"
+        status: "required"
+        implementation: "Aviso em todas as telas de alerta"
+        text: |
+          "Este sistema fornece apenas alertas tecnicos baseados em metricas
+          de volatilidade. Nao constitui, sob nenhuma hipotese, recomendacao
+          de investimento, assessoria financeira ou sugestao de compra ou
+          venda de ativos. Consulte um profissional certificado antes de
+          tomar decisoes de investimento."
+        severity: "blocker"
+        phase: "Phase 1 (Requirements)"
+
+      - control: "Linguagem neutra"
+        status: "required"
+        implementation: "Review de todas as mensagens do sistema"
+        finding: "Evitar termos como 'oportunidade', 'recomendamos', 'compre/venda'"
+        severity: "high"
+        phase: "Phase 5 (QA)"
+
+    market_data_controls:
+      - control: "Licenciamento de dados"
+        status: "investigation_required"
+        finding: "Verificar termos com provedor de dados escolhido"
+        severity: "blocker"
+        phase: "Phase 1 (Requirements)"
+        action: "Consultar termos da B3 ou provedor terceiro"
+
+  risk_summary:
+    blockers: 4
+    high: 4
+    medium: 4
+    low: 1
+
+    blocker_details:
+      - "Consentimento LGPD nao implementado"
+      - "Disclaimer CVM obrigatorio"
+      - "TLS obrigatorio"
+      - "Licenciamento de dados de mercado nao verificado"
+
+    high_details:
+      - "Finalidade especifica nao documentada"
+      - "Criptografia em repouso nao definida"
+      - "Linguagem neutra nao revisada"
+      - "Politica de retencao nao documentada"
+
+  verdict: "APPROVED_WITH_CONDITIONS"
+  verdict_rationale: >
+    O projeto pode prosseguir desde que as condicoes abaixo sejam
+    atendidas nos gates apropriados. Os blockers identificados devem
+    ser resolvidos antes do deploy em producao.
+
+  conditions_for_phase_transition:
+    phase_0_to_1:
+      - condition: "Iniciar investigacao de licenciamento de dados"
+        owner: "domain-researcher"
+        blocking: false
+
+    phase_1_to_2:
+      - condition: "Definir politica de privacidade com finalidades"
+        owner: "product-owner"
+        blocking: true
+      - condition: "Confirmar fonte de dados e licenciamento"
+        owner: "product-owner"
+        blocking: true
+      - condition: "Documentar disclaimer CVM obrigatorio"
+        owner: "requirements-analyst"
+        blocking: true
+
+    phase_2_to_3:
+      - condition: "Arquitetura inclui criptografia em repouso"
+        owner: "system-architect"
+        blocking: true
+      - condition: "Arquitetura inclui politica de retencao"
+        owner: "data-architect"
+        blocking: true
+
+    phase_4_to_5:
+      - condition: "Consentimento LGPD implementado"
+        owner: "code-author"
+        blocking: true
+      - condition: "TLS 1.2+ configurado"
+        owner: "cicd-engineer"
+        blocking: true
+
+    phase_5_to_6:
+      - condition: "Disclaimer CVM visivel em todas as telas"
+        owner: "qa-analyst"
+        blocking: true
+      - condition: "Review de linguagem neutra"
+        owner: "qa-analyst"
+        blocking: true
+
+    phase_6_to_7:
+      - condition: "Politica de privacidade publicada"
+        owner: "product-owner"
+        blocking: true
+      - condition: "Termos de uso publicados"
+        owner: "product-owner"
+        blocking: true
+
+  required_documentation:
+    before_launch:
+      - document: "Politica de Privacidade"
+        status: "required"
+        owner: "product-owner"
+
+      - document: "Termos de Uso"
+        status: "required"
+        owner: "product-owner"
+
+      - document: "Contrato de Licenciamento de Dados"
+        status: "required"
+        owner: "product-owner"
+        note: "Com B3 ou provedor terceiro"
+
+    technical_documentation:
+      - document: "Mapeamento de Dados Pessoais"
+        status: "required"
+        owner: "data-architect"
+
+      - document: "Procedimento de Exclusao de Dados"
+        status: "required"
+        owner: "data-architect"
+
+  escalation_flags:
+    - flag: "CVM_COMPLIANCE"
+      reason: "Sistema relacionado a mercado financeiro"
+      recommendation: "Consultar advogado especializado antes de launch"
+      severity: "advisory"
+
+    - flag: "B3_LICENSING"
+      reason: "Uso de dados de mercado pode exigir contrato"
+      recommendation: "Contatar B3 ou provedor para esclarecer termos"
+      severity: "investigation"
+
+  next_assessment: "Gate Phase 1 -> Phase 2"
+  next_agent: "domain-researcher"
