@@ -1,0 +1,51 @@
+%% C4 Component Diagram - Backend API
+%% Project: proj-75602fb4
+%% Created: 2026-01-17T15:49:22Z
+
+C4Component
+    title Component Diagram - Backend API
+
+    Container(webapp, "Web Application", "Next.js", "Dashboard PWA")
+
+    Container_Boundary(api, "Backend API") {
+        Component(auth_mod, "Authentication Module", "ASP.NET Core Identity", "Registro, login, JWT")
+        Component(users_mod, "Users Module", "Controller + Service", "Perfil e preferencias")
+        Component(assets_mod, "Assets Module", "Controller + Service", "Catalogo de ativos")
+        Component(volatility_mod, "Volatility Module", "Controller + Service", "Metricas de volatilidade")
+        Component(alerts_mod, "Alerts Module", "Controller + Service", "CRUD de alertas")
+        Component(watchlist_mod, "Watchlist Module", "Controller + Service", "Lista de favoritos")
+        Component(subscription_mod, "Subscription Module", "Controller + Service", "Assinaturas e pagamentos")
+    }
+
+    ContainerDb(db, "PostgreSQL", "PostgreSQL 16", "Banco principal")
+    ContainerDb(cache, "Redis", "Redis 7", "Cache")
+    System_Ext(stripe, "Stripe", "Pagamentos")
+
+    %% Web App to API
+    Rel(webapp, auth_mod, "Login/Registro", "HTTPS")
+    Rel(webapp, users_mod, "Perfil", "HTTPS")
+    Rel(webapp, assets_mod, "Lista ativos", "HTTPS")
+    Rel(webapp, volatility_mod, "Metricas", "HTTPS")
+    Rel(webapp, alerts_mod, "Alertas", "HTTPS")
+    Rel(webapp, watchlist_mod, "Favoritos", "HTTPS")
+    Rel(webapp, subscription_mod, "Upgrade", "HTTPS")
+
+    %% Module dependencies
+    Rel(users_mod, auth_mod, "Valida token", "")
+    Rel(alerts_mod, volatility_mod, "Le metricas", "")
+    Rel(watchlist_mod, assets_mod, "Valida ativo", "")
+    Rel(subscription_mod, stripe, "Checkout", "HTTPS")
+
+    %% Data access
+    Rel(auth_mod, db, "CRUD usuarios", "")
+    Rel(auth_mod, cache, "Sessoes", "")
+    Rel(users_mod, db, "Preferencias", "")
+    Rel(assets_mod, db, "Catalogo", "")
+    Rel(assets_mod, cache, "Cache lista", "")
+    Rel(volatility_mod, cache, "Metricas cached", "")
+    Rel(volatility_mod, db, "Historico", "")
+    Rel(alerts_mod, db, "Regras", "")
+    Rel(watchlist_mod, db, "Listas", "")
+    Rel(subscription_mod, db, "Assinaturas", "")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

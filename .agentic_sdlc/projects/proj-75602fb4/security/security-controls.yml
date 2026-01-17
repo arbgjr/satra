@@ -1,0 +1,527 @@
+# =============================================================================
+# Security Controls - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 2 - Architecture & Design
+# Created: 2026-01-17T16:03:44Z
+# Author: threat-modeler
+# Status: proposed
+# Based on: threat-model-stride.yml
+# =============================================================================
+
+security_controls:
+  metadata:
+    project_id: proj-75602fb4
+    version: "1.0.0"
+    created_at: "2026-01-17T16:03:44Z"
+    updated_at: "2026-01-17T16:03:44Z"
+    author: threat-modeler
+    status: proposed
+
+  # ---------------------------------------------------------------------------
+  # AUTHENTICATION CONTROLS
+  # ---------------------------------------------------------------------------
+  authentication:
+    - id: SEC-AUTH-001
+      name: "JWT with RS256"
+      category: authentication
+      type: preventive
+      priority: critical
+      description: |
+        Tokens JWT assinados com RS256 (asymmetric keys).
+        Keys rotacionadas periodicamente.
+      implementation:
+        technology: "ASP.NET Core JWT Bearer"
+        configuration:
+          algorithm: "RS256"
+          issuer: "satra.app"
+          audience: "satra-api"
+          access_token_lifetime: "15 minutes"
+          refresh_token_lifetime: "7 days"
+          clock_skew: "30 seconds"
+      covers_threats: [S-002]
+      status: planned
+      sprint: 1
+
+    - id: SEC-AUTH-002
+      name: "Password Hashing"
+      category: authentication
+      type: preventive
+      priority: critical
+      description: "Senhas hasheadas com bcrypt, cost factor 12"
+      implementation:
+        technology: "BCrypt.Net-Next"
+        configuration:
+          work_factor: 12
+      covers_threats: [I-001]
+      status: planned
+      sprint: 1
+
+    - id: SEC-AUTH-003
+      name: "Brute Force Protection"
+      category: authentication
+      type: preventive
+      priority: high
+      description: |
+        Rate limiting em endpoints de login.
+        CAPTCHA apos falhas consecutivas.
+      implementation:
+        technology: "ASP.NET Core Rate Limiting + hCaptcha"
+        configuration:
+          max_attempts: 5
+          window: "15 minutes"
+          lockout: "15 minutes"
+          captcha_threshold: 3
+      covers_threats: [S-001]
+      status: planned
+      sprint: 1
+
+    - id: SEC-AUTH-004
+      name: "Refresh Token Rotation"
+      category: authentication
+      type: preventive
+      priority: high
+      description: |
+        Refresh tokens sao rotacionados a cada uso.
+        Tokens antigos sao invalidados.
+      implementation:
+        technology: "Custom implementation"
+        storage: "PostgreSQL + Redis"
+      covers_threats: [S-002]
+      status: planned
+      sprint: 1
+
+  # ---------------------------------------------------------------------------
+  # AUTHORIZATION CONTROLS
+  # ---------------------------------------------------------------------------
+  authorization:
+    - id: SEC-AUTHZ-001
+      name: "Role-Based Access Control"
+      category: authorization
+      type: preventive
+      priority: critical
+      description: "RBAC com roles: anonymous, free, premium, admin"
+      implementation:
+        technology: "ASP.NET Core Authorization"
+        roles:
+          - name: "anonymous"
+            permissions: ["read:public"]
+          - name: "free"
+            permissions: ["read:own", "write:own", "alerts:3", "watchlist:5"]
+          - name: "premium"
+            permissions: ["read:own", "write:own", "alerts:unlimited", "watchlist:unlimited", "notifications:all"]
+          - name: "admin"
+            permissions: ["read:all", "write:all", "admin:*"]
+      covers_threats: [E-001, E-002]
+      status: planned
+      sprint: 1
+
+    - id: SEC-AUTHZ-002
+      name: "Ownership Verification"
+      category: authorization
+      type: preventive
+      priority: high
+      description: "Verificar que usuario so pode acessar seus proprios recursos"
+      implementation:
+        technology: "Custom middleware"
+        pattern: "Resource-based authorization"
+        code_example: |
+          if (alert.UserId != currentUser.Id)
+              return Forbid();
+      covers_threats: [T-002, I-001]
+      status: planned
+      sprint: 1
+
+    - id: SEC-AUTHZ-003
+      name: "Tier Verification"
+      category: authorization
+      type: preventive
+      priority: high
+      description: "Verificar tier do usuario antes de permitir features premium"
+      implementation:
+        technology: "Claims-based authorization"
+        claim: "subscription_tier"
+        verification: "Backend-only (never trust frontend)"
+      covers_threats: [E-001]
+      status: planned
+      sprint: 1
+
+  # ---------------------------------------------------------------------------
+  # DATA PROTECTION CONTROLS
+  # ---------------------------------------------------------------------------
+  data_protection:
+    - id: SEC-DATA-001
+      name: "TLS 1.3 Enforcement"
+      category: data_protection
+      type: preventive
+      priority: critical
+      description: "Todas as conexoes devem usar TLS 1.3"
+      implementation:
+        technology: "Azure App Service / Cloudflare"
+        configuration:
+          min_tls_version: "1.3"
+          hsts_enabled: true
+          hsts_max_age: 31536000
+      covers_threats: [I-001]
+      status: planned
+      sprint: 1
+
+    - id: SEC-DATA-002
+      name: "Encryption at Rest"
+      category: data_protection
+      type: preventive
+      priority: critical
+      description: "Dados sensiveis criptografados no banco"
+      implementation:
+        technology: "PostgreSQL TDE + Column-level encryption"
+        encrypted_columns:
+          - "users.phone_number"
+          - "users.notification_preferences"
+          - "api_keys.key_value"
+        algorithm: "AES-256-GCM"
+      covers_threats: [I-001]
+      status: planned
+      sprint: 2
+
+    - id: SEC-DATA-003
+      name: "Secret Management"
+      category: data_protection
+      type: preventive
+      priority: critical
+      description: "Secrets armazenados em vault, nao em codigo/config"
+      implementation:
+        technology: "Azure Key Vault"
+        secrets:
+          - "alpha-vantage-api-key"
+          - "sendgrid-api-key"
+          - "stripe-secret-key"
+          - "jwt-signing-key"
+          - "db-connection-string"
+      covers_threats: [S-003, I-001]
+      status: planned
+      sprint: 1
+
+    - id: SEC-DATA-004
+      name: "Log Sanitization"
+      category: data_protection
+      type: preventive
+      priority: high
+      description: "Mascarar dados sensiveis em logs"
+      implementation:
+        technology: "Serilog Enrichers"
+        masked_fields:
+          - "password"
+          - "token"
+          - "apiKey"
+          - "email"
+          - "phone"
+        mask_pattern: "***REDACTED***"
+      covers_threats: [I-003]
+      status: planned
+      sprint: 1
+
+  # ---------------------------------------------------------------------------
+  # INPUT VALIDATION CONTROLS
+  # ---------------------------------------------------------------------------
+  input_validation:
+    - id: SEC-INPUT-001
+      name: "Parameterized Queries"
+      category: input_validation
+      type: preventive
+      priority: critical
+      description: "Todas as queries SQL sao parametrizadas"
+      implementation:
+        technology: "Entity Framework Core"
+        rule: "NEVER use string concatenation for SQL"
+        code_example: |
+          // CORRETO
+          var user = await _context.Users
+              .Where(u => u.Email == email)
+              .FirstOrDefaultAsync();
+
+          // PROIBIDO
+          var sql = $"SELECT * FROM users WHERE email = '{email}'";
+      covers_threats: [T-001]
+      status: planned
+      sprint: 1
+
+    - id: SEC-INPUT-002
+      name: "Request Validation"
+      category: input_validation
+      type: preventive
+      priority: high
+      description: "Validacao de todos os inputs de request"
+      implementation:
+        technology: "FluentValidation"
+        rules:
+          - "Email: valid format, max 255 chars"
+          - "Password: min 8 chars, complexity requirements"
+          - "Symbol: alphanumeric, max 10 chars"
+          - "Threshold: numeric, within valid range"
+      covers_threats: [T-001]
+      status: planned
+      sprint: 1
+
+    - id: SEC-INPUT-003
+      name: "XSS Prevention"
+      category: input_validation
+      type: preventive
+      priority: high
+      description: "Output encoding para prevenir XSS"
+      implementation:
+        technology: "React (auto-escaping) + CSP headers"
+        csp_header: |
+          default-src 'self';
+          script-src 'self';
+          style-src 'self' 'unsafe-inline';
+          img-src 'self' data: https:;
+          connect-src 'self' https://api.satra.app;
+      covers_threats: [S-002]
+      status: planned
+      sprint: 1
+
+  # ---------------------------------------------------------------------------
+  # RATE LIMITING CONTROLS
+  # ---------------------------------------------------------------------------
+  rate_limiting:
+    - id: SEC-RATE-001
+      name: "API Rate Limiting"
+      category: availability
+      type: preventive
+      priority: high
+      description: "Rate limiting por IP e usuario"
+      implementation:
+        technology: "ASP.NET Core Rate Limiting"
+        tiers:
+          anonymous:
+            requests_per_minute: 10
+            requests_per_hour: 100
+          free:
+            requests_per_minute: 60
+            requests_per_hour: 1000
+          premium:
+            requests_per_minute: 600
+            requests_per_hour: 10000
+        response_headers:
+          - "X-RateLimit-Limit"
+          - "X-RateLimit-Remaining"
+          - "X-RateLimit-Reset"
+      covers_threats: [D-001, S-001]
+      status: planned
+      sprint: 1
+
+    - id: SEC-RATE-002
+      name: "Login Rate Limiting"
+      category: availability
+      type: preventive
+      priority: critical
+      description: "Rate limiting especifico para login"
+      implementation:
+        technology: "Custom middleware"
+        limits:
+          per_ip: "5 attempts per 15 minutes"
+          per_account: "10 attempts per hour"
+        response: "429 Too Many Requests"
+        lockout_duration: "15 minutes"
+      covers_threats: [S-001]
+      status: planned
+      sprint: 1
+
+  # ---------------------------------------------------------------------------
+  # MONITORING & AUDIT CONTROLS
+  # ---------------------------------------------------------------------------
+  monitoring:
+    - id: SEC-MON-001
+      name: "Audit Logging"
+      category: monitoring
+      type: detective
+      priority: high
+      description: "Log de auditoria para acoes sensiveis"
+      implementation:
+        technology: "Serilog + PostgreSQL audit table"
+        events:
+          - "user.login"
+          - "user.logout"
+          - "user.password_change"
+          - "alert.created"
+          - "alert.updated"
+          - "alert.deleted"
+          - "subscription.upgraded"
+          - "subscription.cancelled"
+        fields:
+          - "timestamp"
+          - "user_id"
+          - "action"
+          - "ip_address"
+          - "user_agent"
+          - "resource_id"
+          - "old_value"
+          - "new_value"
+      covers_threats: [R-001]
+      status: planned
+      sprint: 2
+
+    - id: SEC-MON-002
+      name: "Security Alerting"
+      category: monitoring
+      type: detective
+      priority: medium
+      description: "Alertas para eventos de seguranca"
+      implementation:
+        technology: "Grafana Alerting"
+        alerts:
+          - name: "High rate of failed logins"
+            threshold: "10 failures per IP in 5 minutes"
+          - name: "Unusual login location"
+            threshold: "Login from new country"
+          - name: "Admin action"
+            threshold: "Any admin API call"
+          - name: "Rate limit exceeded"
+            threshold: "5 429 responses per user in 1 minute"
+      covers_threats: [S-001, E-002]
+      status: planned
+      sprint: 2
+
+    - id: SEC-MON-003
+      name: "Delivery Tracking"
+      category: monitoring
+      type: detective
+      priority: medium
+      description: "Rastreamento de entrega de notificacoes"
+      implementation:
+        technology: "Custom + SendGrid webhooks"
+        tracked_statuses:
+          - "queued"
+          - "sent"
+          - "delivered"
+          - "failed"
+          - "bounced"
+          - "opened"
+        retention: "90 days"
+      covers_threats: [R-002]
+      status: planned
+      sprint: 2
+
+  # ---------------------------------------------------------------------------
+  # NETWORK SECURITY CONTROLS
+  # ---------------------------------------------------------------------------
+  network:
+    - id: SEC-NET-001
+      name: "WAF Rules"
+      category: network
+      type: preventive
+      priority: high
+      description: "Web Application Firewall rules"
+      implementation:
+        technology: "Azure WAF or Cloudflare"
+        rules:
+          - "SQL Injection patterns"
+          - "XSS patterns"
+          - "Known attack signatures"
+          - "Rate limiting"
+          - "Geo-blocking (optional)"
+      covers_threats: [T-001, D-001]
+      status: planned
+      sprint: 2
+
+    - id: SEC-NET-002
+      name: "Network Isolation"
+      category: network
+      type: preventive
+      priority: medium
+      description: "Isolamento de rede para componentes internos"
+      implementation:
+        technology: "Azure VNet / Private Endpoints"
+        isolation:
+          - "Database: Private endpoint only"
+          - "Redis: VNet only"
+          - "Workers: No public ingress"
+      covers_threats: [T-003, I-001]
+      status: planned
+      sprint: 2
+
+  # ---------------------------------------------------------------------------
+  # COMPLIANCE CONTROLS
+  # ---------------------------------------------------------------------------
+  compliance:
+    - id: SEC-COMP-001
+      name: "LGPD Data Subject Rights"
+      category: compliance
+      type: preventive
+      priority: critical
+      description: "Implementar direitos dos titulares LGPD"
+      implementation:
+        endpoints:
+          - path: "DELETE /api/v1/users/me"
+            purpose: "Right to erasure"
+          - path: "GET /api/v1/users/me/export"
+            purpose: "Right to portability"
+          - path: "PUT /api/v1/users/me/consent"
+            purpose: "Manage consent"
+        features:
+          - "Account deletion with data purge"
+          - "Data export in JSON format"
+          - "Consent management"
+          - "Privacy policy acceptance"
+      covers_threats: [I-001]
+      status: planned
+      sprint: 2
+
+    - id: SEC-COMP-002
+      name: "CVM Disclaimers"
+      category: compliance
+      type: preventive
+      priority: high
+      description: "Disclaimers para conformidade CVM"
+      implementation:
+        locations:
+          - "Footer de todas as paginas"
+          - "Template de email"
+          - "Alertas push"
+          - "Termos de uso"
+        text: |
+          Este servico nao constitui assessoria de investimentos.
+          As informacoes sao meramente informativas e nao devem
+          ser interpretadas como recomendacao de compra ou venda.
+      covers_threats: []
+      status: planned
+      sprint: 1
+
+  # ---------------------------------------------------------------------------
+  # SUMMARY
+  # ---------------------------------------------------------------------------
+  summary:
+    total_controls: 20
+    by_category:
+      authentication: 4
+      authorization: 3
+      data_protection: 4
+      input_validation: 3
+      rate_limiting: 2
+      monitoring: 3
+      network: 2
+      compliance: 2
+
+    by_priority:
+      critical: 9
+      high: 9
+      medium: 2
+
+    sprint_1_focus:
+      - SEC-AUTH-001
+      - SEC-AUTH-002
+      - SEC-AUTH-003
+      - SEC-AUTHZ-001
+      - SEC-DATA-001
+      - SEC-DATA-003
+      - SEC-INPUT-001
+      - SEC-RATE-001
+      - SEC-COMP-002
+
+    sprint_2_focus:
+      - SEC-DATA-002
+      - SEC-DATA-004
+      - SEC-MON-001
+      - SEC-MON-002
+      - SEC-NET-001
+      - SEC-COMP-001

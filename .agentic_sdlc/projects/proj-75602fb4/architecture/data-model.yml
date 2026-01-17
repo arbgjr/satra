@@ -1,0 +1,946 @@
+# =============================================================================
+# Data Model - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 2 - Architecture & Design
+# Created: 2026-01-17T16:06:33Z
+# Author: data-architect
+# Status: proposed
+# =============================================================================
+
+data_model:
+  metadata:
+    project_id: proj-75602fb4
+    version: "1.0.0"
+    created_at: "2026-01-17T16:06:33Z"
+    updated_at: "2026-01-17T16:06:33Z"
+    author: data-architect
+    status: proposed
+    database: PostgreSQL 16
+
+  # ---------------------------------------------------------------------------
+  # ENTITIES
+  # ---------------------------------------------------------------------------
+  entities:
+    # =========================================================================
+    # USERS DOMAIN
+    # =========================================================================
+    - name: users
+      description: "Usuarios do sistema"
+      primary_key: id
+      schema: public
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+          description: "Identificador unico"
+
+        - name: email
+          type: varchar(255)
+          nullable: false
+          unique: true
+          description: "Email do usuario (login)"
+
+        - name: password_hash
+          type: varchar(255)
+          nullable: false
+          description: "Hash bcrypt da senha"
+
+        - name: display_name
+          type: varchar(100)
+          nullable: true
+          description: "Nome de exibicao"
+
+        - name: phone_number
+          type: varchar(20)
+          nullable: true
+          encrypted: true
+          description: "Telefone para SMS (premium)"
+
+        - name: subscription_tier
+          type: varchar(20)
+          nullable: false
+          default: "'free'"
+          description: "Tier de assinatura (free, premium)"
+          enum: ["free", "premium"]
+
+        - name: subscription_expires_at
+          type: timestamp with time zone
+          nullable: true
+          description: "Data de expiracao da assinatura premium"
+
+        - name: email_verified
+          type: boolean
+          nullable: false
+          default: "false"
+          description: "Email foi verificado"
+
+        - name: notification_preferences
+          type: jsonb
+          nullable: false
+          default: "'{\"email\": true, \"push\": false, \"sms\": false, \"telegram\": false}'"
+          description: "Preferencias de notificacao"
+
+        - name: timezone
+          type: varchar(50)
+          nullable: false
+          default: "'America/Sao_Paulo'"
+          description: "Timezone do usuario"
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: updated_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: deleted_at
+          type: timestamp with time zone
+          nullable: true
+          description: "Soft delete"
+
+      indexes:
+        - name: idx_users_email
+          columns: [email]
+          unique: true
+          where: "deleted_at IS NULL"
+
+        - name: idx_users_subscription_tier
+          columns: [subscription_tier]
+
+    - name: refresh_tokens
+      description: "Tokens de refresh para autenticacao"
+      primary_key: id
+      schema: public
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+
+        - name: user_id
+          type: uuid
+          nullable: false
+          references: "users(id)"
+
+        - name: token_hash
+          type: varchar(255)
+          nullable: false
+          description: "Hash do refresh token"
+
+        - name: expires_at
+          type: timestamp with time zone
+          nullable: false
+
+        - name: revoked_at
+          type: timestamp with time zone
+          nullable: true
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: user_agent
+          type: varchar(500)
+          nullable: true
+
+        - name: ip_address
+          type: inet
+          nullable: true
+
+      indexes:
+        - name: idx_refresh_tokens_user_id
+          columns: [user_id]
+
+        - name: idx_refresh_tokens_token_hash
+          columns: [token_hash]
+
+    # =========================================================================
+    # ASSETS DOMAIN
+    # =========================================================================
+    - name: assets
+      description: "Catalogo de ativos disponiveis"
+      primary_key: id
+      schema: public
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+
+        - name: symbol
+          type: varchar(20)
+          nullable: false
+          unique: true
+          description: "Simbolo do ativo (ex: PETR4)"
+
+        - name: alpha_vantage_symbol
+          type: varchar(30)
+          nullable: false
+          description: "Simbolo no Alpha Vantage (ex: PETR4.SAO)"
+
+        - name: name
+          type: varchar(200)
+          nullable: false
+          description: "Nome do ativo"
+
+        - name: type
+          type: varchar(20)
+          nullable: false
+          description: "Tipo do ativo"
+          enum: ["stock", "fii", "etf", "bdr"]
+
+        - name: sector
+          type: varchar(100)
+          nullable: true
+          description: "Setor do ativo"
+
+        - name: is_active
+          type: boolean
+          nullable: false
+          default: "true"
+          description: "Ativo disponivel para monitoramento"
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: updated_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+      indexes:
+        - name: idx_assets_symbol
+          columns: [symbol]
+          unique: true
+
+        - name: idx_assets_type
+          columns: [type]
+
+        - name: idx_assets_is_active
+          columns: [is_active]
+
+    # =========================================================================
+    # MARKET DATA DOMAIN
+    # =========================================================================
+    - name: market_data
+      description: "Dados OHLC de mercado"
+      primary_key: [asset_id, date]
+      schema: public
+      partitioning:
+        type: RANGE
+        column: date
+        partitions: monthly
+      columns:
+        - name: asset_id
+          type: uuid
+          nullable: false
+          references: "assets(id)"
+
+        - name: date
+          type: date
+          nullable: false
+          description: "Data do pregao"
+
+        - name: open
+          type: numeric(12,4)
+          nullable: false
+
+        - name: high
+          type: numeric(12,4)
+          nullable: false
+
+        - name: low
+          type: numeric(12,4)
+          nullable: false
+
+        - name: close
+          type: numeric(12,4)
+          nullable: false
+
+        - name: volume
+          type: bigint
+          nullable: false
+
+        - name: adjusted_close
+          type: numeric(12,4)
+          nullable: true
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: source
+          type: varchar(50)
+          nullable: false
+          default: "'alpha_vantage'"
+
+      indexes:
+        - name: idx_market_data_asset_date
+          columns: [asset_id, date]
+          unique: true
+
+        - name: idx_market_data_date
+          columns: [date]
+
+    - name: volatility_metrics
+      description: "Metricas de volatilidade calculadas"
+      primary_key: [asset_id, date, metric_type]
+      schema: public
+      partitioning:
+        type: RANGE
+        column: date
+        partitions: monthly
+      columns:
+        - name: asset_id
+          type: uuid
+          nullable: false
+          references: "assets(id)"
+
+        - name: date
+          type: date
+          nullable: false
+
+        - name: metric_type
+          type: varchar(30)
+          nullable: false
+          enum: ["atr", "stddev", "bollinger", "beta"]
+
+        - name: value
+          type: numeric(12,6)
+          nullable: false
+          description: "Valor principal da metrica"
+
+        - name: metadata
+          type: jsonb
+          nullable: true
+          description: "Dados adicionais (ex: upper_band, lower_band para Bollinger)"
+
+        - name: period
+          type: integer
+          nullable: false
+          default: 14
+          description: "Periodo usado no calculo"
+
+        - name: calculated_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+      indexes:
+        - name: idx_volatility_metrics_asset_date_type
+          columns: [asset_id, date, metric_type]
+          unique: true
+
+        - name: idx_volatility_metrics_date
+          columns: [date]
+
+    # =========================================================================
+    # ALERTS DOMAIN
+    # =========================================================================
+    - name: alerts
+      description: "Configuracoes de alertas dos usuarios"
+      primary_key: id
+      schema: public
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+
+        - name: user_id
+          type: uuid
+          nullable: false
+          references: "users(id)"
+
+        - name: asset_id
+          type: uuid
+          nullable: false
+          references: "assets(id)"
+
+        - name: name
+          type: varchar(100)
+          nullable: true
+          description: "Nome do alerta (opcional)"
+
+        - name: metric_type
+          type: varchar(30)
+          nullable: false
+          enum: ["atr", "stddev", "bollinger", "beta"]
+
+        - name: condition
+          type: varchar(20)
+          nullable: false
+          enum: ["above", "below", "crosses_above", "crosses_below"]
+
+        - name: threshold_type
+          type: varchar(20)
+          nullable: false
+          enum: ["absolute", "percentage_of_average"]
+
+        - name: threshold_value
+          type: numeric(12,6)
+          nullable: false
+
+        - name: reference_period
+          type: integer
+          nullable: false
+          default: 20
+          description: "Periodo para calculo de media de referencia"
+
+        - name: notification_channels
+          type: jsonb
+          nullable: false
+          default: "'{\"email\": true, \"push\": false}'"
+
+        - name: cooldown_minutes
+          type: integer
+          nullable: false
+          default: 60
+          description: "Tempo minimo entre alertas repetidos"
+
+        - name: status
+          type: varchar(20)
+          nullable: false
+          default: "'active'"
+          enum: ["active", "paused", "triggered", "expired"]
+
+        - name: last_triggered_at
+          type: timestamp with time zone
+          nullable: true
+
+        - name: trigger_count
+          type: integer
+          nullable: false
+          default: 0
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: updated_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: deleted_at
+          type: timestamp with time zone
+          nullable: true
+
+      indexes:
+        - name: idx_alerts_user_id
+          columns: [user_id]
+
+        - name: idx_alerts_asset_id
+          columns: [asset_id]
+
+        - name: idx_alerts_status
+          columns: [status]
+          where: "status = 'active'"
+
+        - name: idx_alerts_user_asset
+          columns: [user_id, asset_id]
+
+    - name: alert_history
+      description: "Historico de alertas disparados"
+      primary_key: id
+      schema: public
+      partitioning:
+        type: RANGE
+        column: triggered_at
+        partitions: monthly
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+
+        - name: alert_id
+          type: uuid
+          nullable: false
+          references: "alerts(id)"
+
+        - name: user_id
+          type: uuid
+          nullable: false
+          references: "users(id)"
+
+        - name: asset_id
+          type: uuid
+          nullable: false
+          references: "assets(id)"
+
+        - name: triggered_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: metric_value
+          type: numeric(12,6)
+          nullable: false
+          description: "Valor que disparou o alerta"
+
+        - name: threshold_value
+          type: numeric(12,6)
+          nullable: false
+
+        - name: notification_status
+          type: jsonb
+          nullable: false
+          description: "Status de cada canal de notificacao"
+
+        - name: acknowledged_at
+          type: timestamp with time zone
+          nullable: true
+
+      indexes:
+        - name: idx_alert_history_user_triggered
+          columns: [user_id, triggered_at DESC]
+
+        - name: idx_alert_history_alert_id
+          columns: [alert_id]
+
+        - name: idx_alert_history_triggered_at
+          columns: [triggered_at]
+
+    # =========================================================================
+    # WATCHLIST DOMAIN
+    # =========================================================================
+    - name: watchlist_items
+      description: "Itens na watchlist do usuario"
+      primary_key: id
+      schema: public
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+
+        - name: user_id
+          type: uuid
+          nullable: false
+          references: "users(id)"
+
+        - name: asset_id
+          type: uuid
+          nullable: false
+          references: "assets(id)"
+
+        - name: position
+          type: integer
+          nullable: false
+          default: 0
+          description: "Ordem na watchlist"
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+      indexes:
+        - name: idx_watchlist_user_asset
+          columns: [user_id, asset_id]
+          unique: true
+
+        - name: idx_watchlist_user_position
+          columns: [user_id, position]
+
+    # =========================================================================
+    # SUBSCRIPTION DOMAIN
+    # =========================================================================
+    - name: subscriptions
+      description: "Historico de assinaturas"
+      primary_key: id
+      schema: public
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+
+        - name: user_id
+          type: uuid
+          nullable: false
+          references: "users(id)"
+
+        - name: stripe_subscription_id
+          type: varchar(100)
+          nullable: true
+          unique: true
+
+        - name: stripe_customer_id
+          type: varchar(100)
+          nullable: true
+
+        - name: tier
+          type: varchar(20)
+          nullable: false
+          enum: ["premium"]
+
+        - name: status
+          type: varchar(20)
+          nullable: false
+          enum: ["active", "cancelled", "past_due", "expired"]
+
+        - name: started_at
+          type: timestamp with time zone
+          nullable: false
+
+        - name: expires_at
+          type: timestamp with time zone
+          nullable: false
+
+        - name: cancelled_at
+          type: timestamp with time zone
+          nullable: true
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: updated_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+      indexes:
+        - name: idx_subscriptions_user_id
+          columns: [user_id]
+
+        - name: idx_subscriptions_stripe_id
+          columns: [stripe_subscription_id]
+          unique: true
+
+        - name: idx_subscriptions_status
+          columns: [status]
+
+    # =========================================================================
+    # NOTIFICATIONS DOMAIN
+    # =========================================================================
+    - name: notification_log
+      description: "Log de notificacoes enviadas"
+      primary_key: id
+      schema: public
+      partitioning:
+        type: RANGE
+        column: created_at
+        partitions: monthly
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+
+        - name: alert_history_id
+          type: uuid
+          nullable: true
+          references: "alert_history(id)"
+
+        - name: user_id
+          type: uuid
+          nullable: false
+          references: "users(id)"
+
+        - name: channel
+          type: varchar(20)
+          nullable: false
+          enum: ["email", "push", "sms", "telegram"]
+
+        - name: status
+          type: varchar(20)
+          nullable: false
+          enum: ["queued", "sent", "delivered", "failed", "bounced"]
+
+        - name: external_id
+          type: varchar(100)
+          nullable: true
+          description: "ID do provider externo (SendGrid, etc)"
+
+        - name: error_message
+          type: text
+          nullable: true
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+        - name: sent_at
+          type: timestamp with time zone
+          nullable: true
+
+        - name: delivered_at
+          type: timestamp with time zone
+          nullable: true
+
+      indexes:
+        - name: idx_notification_log_user_created
+          columns: [user_id, created_at DESC]
+
+        - name: idx_notification_log_alert_history
+          columns: [alert_history_id]
+
+        - name: idx_notification_log_status
+          columns: [status]
+          where: "status IN ('queued', 'sent')"
+
+    # =========================================================================
+    # AUDIT DOMAIN
+    # =========================================================================
+    - name: audit_log
+      description: "Log de auditoria para acoes sensiveis"
+      primary_key: id
+      schema: public
+      partitioning:
+        type: RANGE
+        column: created_at
+        partitions: monthly
+      columns:
+        - name: id
+          type: uuid
+          nullable: false
+          default: "gen_random_uuid()"
+
+        - name: user_id
+          type: uuid
+          nullable: true
+          description: "Usuario que executou a acao (null para sistema)"
+
+        - name: action
+          type: varchar(50)
+          nullable: false
+          description: "Tipo de acao (user.login, alert.created, etc)"
+
+        - name: resource_type
+          type: varchar(50)
+          nullable: true
+          description: "Tipo do recurso afetado"
+
+        - name: resource_id
+          type: uuid
+          nullable: true
+          description: "ID do recurso afetado"
+
+        - name: old_value
+          type: jsonb
+          nullable: true
+          description: "Valor anterior (para updates)"
+
+        - name: new_value
+          type: jsonb
+          nullable: true
+          description: "Novo valor"
+
+        - name: ip_address
+          type: inet
+          nullable: true
+
+        - name: user_agent
+          type: varchar(500)
+          nullable: true
+
+        - name: created_at
+          type: timestamp with time zone
+          nullable: false
+          default: "now()"
+
+      indexes:
+        - name: idx_audit_log_user_created
+          columns: [user_id, created_at DESC]
+
+        - name: idx_audit_log_action
+          columns: [action]
+
+        - name: idx_audit_log_resource
+          columns: [resource_type, resource_id]
+
+  # ---------------------------------------------------------------------------
+  # ER DIAGRAM (Mermaid)
+  # ---------------------------------------------------------------------------
+  er_diagram: |
+    ```mermaid
+    erDiagram
+        users ||--o{ refresh_tokens : has
+        users ||--o{ alerts : creates
+        users ||--o{ alert_history : receives
+        users ||--o{ watchlist_items : has
+        users ||--o{ subscriptions : has
+        users ||--o{ notification_log : receives
+        users ||--o{ audit_log : generates
+
+        assets ||--o{ market_data : has
+        assets ||--o{ volatility_metrics : has
+        assets ||--o{ alerts : monitors
+        assets ||--o{ watchlist_items : listed_in
+
+        alerts ||--o{ alert_history : triggers
+
+        alert_history ||--o{ notification_log : generates
+
+        users {
+            uuid id PK
+            varchar email UK
+            varchar password_hash
+            varchar subscription_tier
+            jsonb notification_preferences
+            timestamp created_at
+        }
+
+        assets {
+            uuid id PK
+            varchar symbol UK
+            varchar name
+            varchar type
+            varchar sector
+            boolean is_active
+        }
+
+        market_data {
+            uuid asset_id PK,FK
+            date date PK
+            numeric open
+            numeric high
+            numeric low
+            numeric close
+            bigint volume
+        }
+
+        volatility_metrics {
+            uuid asset_id PK,FK
+            date date PK
+            varchar metric_type PK
+            numeric value
+            jsonb metadata
+        }
+
+        alerts {
+            uuid id PK
+            uuid user_id FK
+            uuid asset_id FK
+            varchar metric_type
+            varchar condition
+            numeric threshold_value
+            varchar status
+        }
+
+        alert_history {
+            uuid id PK
+            uuid alert_id FK
+            uuid user_id FK
+            timestamp triggered_at
+            numeric metric_value
+            jsonb notification_status
+        }
+
+        watchlist_items {
+            uuid id PK
+            uuid user_id FK
+            uuid asset_id FK
+            integer position
+        }
+
+        subscriptions {
+            uuid id PK
+            uuid user_id FK
+            varchar stripe_subscription_id UK
+            varchar status
+            timestamp expires_at
+        }
+    ```
+
+  # ---------------------------------------------------------------------------
+  # DATA DICTIONARY
+  # ---------------------------------------------------------------------------
+  data_dictionary:
+    subscription_tier:
+      type: enum
+      values:
+        free: "Tier gratuito com funcionalidades limitadas"
+        premium: "Tier pago com todas as funcionalidades"
+
+    metric_type:
+      type: enum
+      values:
+        atr: "Average True Range (14 periodos)"
+        stddev: "Desvio Padrao Historico (30 dias)"
+        bollinger: "Bollinger Bands (20, 2)"
+        beta: "Beta vs Ibovespa (60 dias)"
+
+    alert_condition:
+      type: enum
+      values:
+        above: "Valor acima do threshold"
+        below: "Valor abaixo do threshold"
+        crosses_above: "Valor cruza para acima do threshold"
+        crosses_below: "Valor cruza para abaixo do threshold"
+
+    alert_status:
+      type: enum
+      values:
+        active: "Alerta ativo e monitorando"
+        paused: "Alerta pausado pelo usuario"
+        triggered: "Alerta foi disparado recentemente"
+        expired: "Alerta expirou ou foi desativado"
+
+    notification_channel:
+      type: enum
+      values:
+        email: "Notificacao por email"
+        push: "Notificacao push (PWA)"
+        sms: "SMS (premium only)"
+        telegram: "Telegram bot (premium only)"
+
+    notification_status:
+      type: enum
+      values:
+        queued: "Aguardando envio"
+        sent: "Enviado para provider"
+        delivered: "Confirmado entregue"
+        failed: "Falha no envio"
+        bounced: "Email rejeitado"
+
+  # ---------------------------------------------------------------------------
+  # RETENTION POLICY
+  # ---------------------------------------------------------------------------
+  retention:
+    market_data:
+      policy: "Manter por 2 anos"
+      archive: "Mover para cold storage apos 2 anos"
+
+    volatility_metrics:
+      policy: "Manter por 1 ano"
+      archive: "Descartar apos 1 ano"
+
+    alert_history:
+      free_tier: "7 dias"
+      premium_tier: "90 dias"
+
+    notification_log:
+      policy: "90 dias"
+      archive: "Descartar apos 90 dias"
+
+    audit_log:
+      policy: "1 ano"
+      archive: "Mover para cold storage apos 1 ano"
+
+  # ---------------------------------------------------------------------------
+  # MIGRATIONS STRATEGY
+  # ---------------------------------------------------------------------------
+  migrations:
+    tool: "Entity Framework Core Migrations"
+    naming_convention: "YYYYMMDDHHMMSS_DescriptiveName"
+    example: "20260117150000_InitialCreate"
+    environment_handling:
+      development: "Auto-migrate on startup"
+      staging: "Apply via CI/CD"
+      production: "Manual approval + CI/CD"

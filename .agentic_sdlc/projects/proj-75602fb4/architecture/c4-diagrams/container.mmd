@@ -1,0 +1,52 @@
+%% C4 Container Diagram - Sistema de Alertas B3
+%% Project: proj-75602fb4
+%% Created: 2026-01-17T15:48:45Z
+
+C4Container
+    title Container Diagram - Sistema de Alertas B3
+
+    Person(investor, "Investidor", "Usuario que configura alertas")
+
+    System_Boundary(satra, "Sistema de Alertas B3") {
+        Container(webapp, "Web Application", "Next.js / React", "Dashboard PWA para visualizacao e configuracao")
+        Container(api, "Backend API", ".NET 8 / ASP.NET Core", "API REST para todas as operacoes")
+        Container(worker, "Background Worker", ".NET 8 Worker Service", "Ingestao de dados e calculo de metricas")
+        Container(notifier, "Notification Service", ".NET 8 Worker Service", "Envio de notificacoes multi-canal")
+        ContainerDb(db, "PostgreSQL", "PostgreSQL 16", "Usuarios, alertas, dados de mercado")
+        ContainerDb(cache, "Redis", "Redis 7", "Cache, sessoes, filas")
+    }
+
+    System_Ext(alphavantage, "Alpha Vantage API", "Dados de mercado")
+    System_Ext(email_service, "Email Service", "SendGrid/SES")
+    System_Ext(push_service, "Push Service", "FCM/Web Push")
+    System_Ext(sms_gateway, "SMS Gateway", "Twilio/Zenvia")
+    System_Ext(telegram, "Telegram API", "Bot API")
+    System_Ext(stripe, "Stripe", "Pagamentos")
+
+    %% User interactions
+    Rel(investor, webapp, "Usa", "HTTPS")
+    Rel(webapp, api, "Chama", "HTTPS/REST")
+
+    %% API dependencies
+    Rel(api, db, "Le/Escreve", "TCP/5432")
+    Rel(api, cache, "Le/Escreve", "TCP/6379")
+    Rel(api, stripe, "Processa pagamentos", "HTTPS")
+
+    %% Worker dependencies
+    Rel(worker, alphavantage, "Obtem dados", "HTTPS")
+    Rel(worker, db, "Le/Escreve", "TCP/5432")
+    Rel(worker, cache, "Le/Escreve", "TCP/6379")
+
+    %% Notifier dependencies
+    Rel(notifier, cache, "Consome fila", "TCP/6379")
+    Rel(notifier, db, "Registra historico", "TCP/5432")
+    Rel(notifier, email_service, "Envia email", "HTTPS")
+    Rel(notifier, push_service, "Envia push", "HTTPS")
+    Rel(notifier, sms_gateway, "Envia SMS", "HTTPS")
+    Rel(notifier, telegram, "Envia mensagem", "HTTPS")
+
+    %% Internal events
+    Rel(worker, cache, "Publica eventos", "Redis Streams")
+    Rel(worker, notifier, "Enfileira alertas", "Redis Streams")
+
+    UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")

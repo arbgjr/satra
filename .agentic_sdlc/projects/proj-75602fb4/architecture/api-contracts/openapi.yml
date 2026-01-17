@@ -1,0 +1,1181 @@
+openapi: 3.0.3
+info:
+  title: Sistema de Alertas B3 API
+  description: |
+    API REST para o Sistema de Alertas B3.
+    Permite configurar alertas de volatilidade para ativos da B3
+    e receber notificacoes quando thresholds sao atingidos.
+
+    ## Autenticacao
+    A API usa JWT Bearer tokens. Obtenha um token via `/auth/login`.
+    Inclua o token no header `Authorization: Bearer <token>`.
+
+    ## Rate Limiting
+    - Free tier: 60 requests/minuto
+    - Premium tier: 600 requests/minuto
+
+    Headers de rate limit incluidos em cada resposta:
+    - `X-RateLimit-Limit`
+    - `X-RateLimit-Remaining`
+    - `X-RateLimit-Reset`
+
+    ## Erros
+    Erros seguem o formato RFC 7807 Problem Details.
+
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: suporte@satra.app
+  license:
+    name: Proprietary
+    url: https://satra.app/terms
+
+servers:
+  - url: https://api.satra.app/v1
+    description: Production
+  - url: https://api-staging.satra.app/v1
+    description: Staging
+  - url: http://localhost:8080/v1
+    description: Local development
+
+tags:
+  - name: Authentication
+    description: Registro, login e gestao de tokens
+  - name: Users
+    description: Gestao de perfil e preferencias
+  - name: Assets
+    description: Catalogo de ativos disponiveis
+  - name: Volatility
+    description: Metricas de volatilidade
+  - name: Alerts
+    description: Configuracao e gestao de alertas
+  - name: Watchlist
+    description: Lista de ativos favoritos
+  - name: Subscription
+    description: Gestao de assinatura premium
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ===========================================================================
+  # AUTHENTICATION
+  # ===========================================================================
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Registrar novo usuario
+      security: []
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Usuario criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email ja cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login com email e senha
+      security: []
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login bem sucedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Renovar access token
+      security: []
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token renovado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Invalidar refresh token
+      operationId: logout
+      responses:
+        '204':
+          description: Logout realizado
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Solicitar reset de senha
+      security: []
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '202':
+          description: Email de reset enviado (se existir)
+
+  # ===========================================================================
+  # USERS
+  # ===========================================================================
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Obter perfil do usuario atual
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Perfil do usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [Users]
+      summary: Atualizar perfil do usuario
+      operationId: updateCurrentUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    delete:
+      tags: [Users]
+      summary: Deletar conta (LGPD right to erasure)
+      operationId: deleteCurrentUser
+      responses:
+        '204':
+          description: Conta deletada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/export:
+    get:
+      tags: [Users]
+      summary: Exportar dados do usuario (LGPD portability)
+      operationId: exportUserData
+      responses:
+        '200':
+          description: Dados do usuario em JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDataExport'
+
+  /users/me/preferences:
+    put:
+      tags: [Users]
+      summary: Atualizar preferencias de notificacao
+      operationId: updateNotificationPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferences'
+      responses:
+        '200':
+          description: Preferencias atualizadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+
+  # ===========================================================================
+  # ASSETS
+  # ===========================================================================
+  /assets:
+    get:
+      tags: [Assets]
+      summary: Listar ativos disponiveis
+      operationId: listAssets
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [stock, fii, etf, bdr]
+        - name: sector
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Busca por simbolo ou nome
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Lista de ativos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetListResponse'
+
+  /assets/{symbol}:
+    get:
+      tags: [Assets]
+      summary: Obter detalhes de um ativo
+      operationId: getAsset
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+            example: PETR4
+      responses:
+        '200':
+          description: Detalhes do ativo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # VOLATILITY
+  # ===========================================================================
+  /volatility/{symbol}:
+    get:
+      tags: [Volatility]
+      summary: Obter metricas de volatilidade de um ativo
+      operationId: getVolatility
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+            example: PETR4
+      responses:
+        '200':
+          description: Metricas de volatilidade
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolatilityMetrics'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /volatility:
+    get:
+      tags: [Volatility]
+      summary: Obter metricas de multiplos ativos
+      operationId: getVolatilityBatch
+      parameters:
+        - name: symbols
+          in: query
+          required: true
+          description: Lista de simbolos separados por virgula
+          schema:
+            type: string
+            example: PETR4,VALE3,ITUB4
+      responses:
+        '200':
+          description: Metricas de volatilidade
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/VolatilityMetrics'
+
+  /volatility/{symbol}/history:
+    get:
+      tags: [Volatility]
+      summary: Obter historico de volatilidade
+      operationId: getVolatilityHistory
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [atr, stddev, bollinger, beta]
+            default: atr
+        - name: period
+          in: query
+          description: Periodo em dias
+          schema:
+            type: integer
+            default: 30
+            maximum: 365
+      responses:
+        '200':
+          description: Historico de metricas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolatilityHistory'
+
+  # ===========================================================================
+  # ALERTS
+  # ===========================================================================
+  /alerts:
+    get:
+      tags: [Alerts]
+      summary: Listar alertas do usuario
+      operationId: listAlerts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, paused, all]
+            default: all
+        - name: symbol
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de alertas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Alert'
+
+    post:
+      tags: [Alerts]
+      summary: Criar novo alerta
+      operationId: createAlert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRequest'
+      responses:
+        '201':
+          description: Alerta criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Limite de alertas atingido (free tier)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /alerts/{id}:
+    get:
+      tags: [Alerts]
+      summary: Obter detalhes de um alerta
+      operationId: getAlert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes do alerta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Alerts]
+      summary: Atualizar alerta
+      operationId: updateAlert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAlertRequest'
+      responses:
+        '200':
+          description: Alerta atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Alerts]
+      summary: Deletar alerta
+      operationId: deleteAlert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Alerta deletado
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /alerts/{id}/pause:
+    post:
+      tags: [Alerts]
+      summary: Pausar/retomar alerta
+      operationId: toggleAlertPause
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paused:
+                  type: boolean
+      responses:
+        '200':
+          description: Status atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+
+  /alerts/history:
+    get:
+      tags: [Alerts]
+      summary: Historico de alertas disparados
+      operationId: getAlertHistory
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Historico de alertas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertHistoryResponse'
+
+  # ===========================================================================
+  # WATCHLIST
+  # ===========================================================================
+  /watchlist:
+    get:
+      tags: [Watchlist]
+      summary: Obter watchlist do usuario
+      operationId: getWatchlist
+      responses:
+        '200':
+          description: Watchlist com metricas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchlistItem'
+
+    post:
+      tags: [Watchlist]
+      summary: Adicionar ativo a watchlist
+      operationId: addToWatchlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol]
+              properties:
+                symbol:
+                  type: string
+                  example: PETR4
+      responses:
+        '201':
+          description: Ativo adicionado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Limite de watchlist atingido (free tier)
+
+  /watchlist/{symbol}:
+    delete:
+      tags: [Watchlist]
+      summary: Remover ativo da watchlist
+      operationId: removeFromWatchlist
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Ativo removido
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # SUBSCRIPTION
+  # ===========================================================================
+  /subscription:
+    get:
+      tags: [Subscription]
+      summary: Obter status da assinatura
+      operationId: getSubscription
+      responses:
+        '200':
+          description: Status da assinatura
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+
+  /subscription/checkout:
+    post:
+      tags: [Subscription]
+      summary: Iniciar checkout para upgrade
+      operationId: createCheckout
+      responses:
+        '200':
+          description: URL de checkout
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkout_url:
+                    type: string
+                    format: uri
+
+  /subscription/cancel:
+    post:
+      tags: [Subscription]
+      summary: Cancelar assinatura
+      operationId: cancelSubscription
+      responses:
+        '200':
+          description: Assinatura cancelada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+
+  /subscription/webhook:
+    post:
+      tags: [Subscription]
+      summary: Webhook do Stripe
+      security: []
+      operationId: stripeWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processado
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageNumber:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    PageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+
+  responses:
+    BadRequest:
+      description: Requisicao invalida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    Unauthorized:
+      description: Nao autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    Forbidden:
+      description: Acesso negado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    NotFound:
+      description: Recurso nao encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    TooManyRequests:
+      description: Rate limit excedido
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+  schemas:
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, password, consent]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        display_name:
+          type: string
+          maxLength: 100
+        consent:
+          type: boolean
+          description: Consentimento LGPD
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          description: Segundos ate expiracao
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        subscription_tier:
+          type: string
+          enum: [free, premium]
+        subscription_expires_at:
+          type: string
+          format: date-time
+        email_verified:
+          type: boolean
+        notification_preferences:
+          $ref: '#/components/schemas/NotificationPreferences'
+        created_at:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          maxLength: 100
+        phone_number:
+          type: string
+          pattern: '^\+55\d{10,11}$'
+        timezone:
+          type: string
+
+    NotificationPreferences:
+      type: object
+      properties:
+        email:
+          type: boolean
+        push:
+          type: boolean
+        sms:
+          type: boolean
+        telegram:
+          type: boolean
+
+    UserDataExport:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+        watchlist:
+          type: array
+          items:
+            type: string
+        alert_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertHistoryItem'
+        exported_at:
+          type: string
+          format: date-time
+
+    Asset:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: PETR4
+        name:
+          type: string
+          example: Petrobras PN
+        type:
+          type: string
+          enum: [stock, fii, etf, bdr]
+        sector:
+          type: string
+        current_price:
+          type: number
+          format: float
+        daily_change:
+          type: number
+          format: float
+        daily_change_percent:
+          type: number
+          format: float
+
+    AssetListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    VolatilityMetrics:
+      type: object
+      properties:
+        symbol:
+          type: string
+        calculated_at:
+          type: string
+          format: date-time
+        atr:
+          type: object
+          properties:
+            value:
+              type: number
+              description: ATR em R$
+            percent:
+              type: number
+              description: ATR como % do preco
+            average_20d:
+              type: number
+              description: Media de 20 dias
+            percentile:
+              type: number
+              description: Percentil historico
+        stddev:
+          type: object
+          properties:
+            daily:
+              type: number
+              description: Desvio padrao diario
+            annualized:
+              type: number
+              description: Desvio padrao anualizado
+            percentile:
+              type: number
+        bollinger:
+          type: object
+          description: Premium only
+          properties:
+            upper_band:
+              type: number
+            middle_band:
+              type: number
+            lower_band:
+              type: number
+            percent_b:
+              type: number
+            bandwidth:
+              type: number
+            is_squeeze:
+              type: boolean
+        beta:
+          type: object
+          description: Premium only
+          properties:
+            value:
+              type: number
+            r_squared:
+              type: number
+            interpretation:
+              type: string
+              enum: [defensive, neutral, aggressive]
+
+    VolatilityHistory:
+      type: object
+      properties:
+        symbol:
+          type: string
+        metric:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              value:
+                type: number
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        name:
+          type: string
+        metric_type:
+          type: string
+          enum: [atr, stddev, bollinger, beta]
+        condition:
+          type: string
+          enum: [above, below, crosses_above, crosses_below]
+        threshold_type:
+          type: string
+          enum: [absolute, percentage_of_average]
+        threshold_value:
+          type: number
+        reference_period:
+          type: integer
+        notification_channels:
+          $ref: '#/components/schemas/NotificationPreferences'
+        status:
+          type: string
+          enum: [active, paused, triggered]
+        last_triggered_at:
+          type: string
+          format: date-time
+        trigger_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    CreateAlertRequest:
+      type: object
+      required: [symbol, metric_type, condition, threshold_type, threshold_value]
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+          maxLength: 100
+        metric_type:
+          type: string
+          enum: [atr, stddev, bollinger, beta]
+        condition:
+          type: string
+          enum: [above, below, crosses_above, crosses_below]
+        threshold_type:
+          type: string
+          enum: [absolute, percentage_of_average]
+        threshold_value:
+          type: number
+        reference_period:
+          type: integer
+          default: 20
+        notification_channels:
+          $ref: '#/components/schemas/NotificationPreferences'
+        cooldown_minutes:
+          type: integer
+          default: 60
+
+    UpdateAlertRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        threshold_value:
+          type: number
+        notification_channels:
+          $ref: '#/components/schemas/NotificationPreferences'
+        cooldown_minutes:
+          type: integer
+
+    AlertHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        alert_id:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        metric_type:
+          type: string
+        triggered_at:
+          type: string
+          format: date-time
+        metric_value:
+          type: number
+        threshold_value:
+          type: number
+        notification_status:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [sent, delivered, failed]
+
+    AlertHistoryResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertHistoryItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    WatchlistItem:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        current_price:
+          type: number
+        daily_change_percent:
+          type: number
+        atr:
+          type: number
+        atr_percent:
+          type: number
+        stddev:
+          type: number
+        position:
+          type: integer
+        added_at:
+          type: string
+          format: date-time
+
+    Subscription:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [free, premium]
+        status:
+          type: string
+          enum: [active, cancelled, past_due, expired]
+        started_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        cancelled_at:
+          type: string
+          format: date-time
+        features:
+          type: object
+          properties:
+            max_alerts:
+              type: integer
+            max_watchlist:
+              type: integer
+            metrics:
+              type: array
+              items:
+                type: string
+            notification_channels:
+              type: array
+              items:
+                type: string
+            history_days:
+              type: integer

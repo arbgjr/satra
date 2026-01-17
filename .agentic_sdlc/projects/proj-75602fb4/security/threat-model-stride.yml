@@ -1,0 +1,832 @@
+# =============================================================================
+# Threat Model (STRIDE) - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 2 - Architecture & Design
+# Created: 2026-01-17T15:58:16Z
+# Author: threat-modeler
+# Status: draft
+# =============================================================================
+
+threat_model:
+  id: TM-001
+  project_id: proj-75602fb4
+  created_at: '2026-01-17T15:58:16Z'
+  updated_at: '2026-01-17T15:58:16Z'
+  status: draft
+
+  # ---------------------------------------------------------------------------
+  # SCOPE
+  # ---------------------------------------------------------------------------
+  scope:
+    system_name: "Sistema de Alertas B3"
+    description: |
+      Plataforma SaaS para monitoramento de volatilidade de ativos da B3
+      com alertas personalizados via email, push, SMS e Telegram.
+    version: "1.0.0 (MVP)"
+    boundary: |
+      Dentro do escopo:
+      - Web Application (frontend)
+      - Backend API
+      - Background Workers
+      - Notification Service
+      - PostgreSQL Database
+      - Redis Cache/Queue
+
+      Fora do escopo:
+      - Alpha Vantage API (servico externo)
+      - SendGrid/SES (servico externo)
+      - Stripe (servico externo)
+      - Infraestrutura cloud (Azure/AWS)
+
+  # ---------------------------------------------------------------------------
+  # ASSETS
+  # ---------------------------------------------------------------------------
+  assets:
+    - id: ASSET-001
+      name: "Credenciais de Usuario"
+      type: data
+      classification: confidential
+      description: "Email, senha (hash), tokens JWT"
+      owner: "Users Module"
+      sensitivity: high
+      regulations: ["LGPD"]
+
+    - id: ASSET-002
+      name: "Dados Pessoais (PII)"
+      type: data
+      classification: confidential
+      description: "Email, telefone, preferencias"
+      owner: "Users Module"
+      sensitivity: high
+      regulations: ["LGPD"]
+
+    - id: ASSET-003
+      name: "Configuracoes de Alertas"
+      type: data
+      classification: internal
+      description: "Regras de alertas, thresholds, ativos monitorados"
+      owner: "Alerts Module"
+      sensitivity: medium
+      notes: "Pode revelar estrategias de investimento do usuario"
+
+    - id: ASSET-004
+      name: "Dados de Mercado"
+      type: data
+      classification: internal
+      description: "OHLC, metricas de volatilidade calculadas"
+      owner: "Data Ingestion"
+      sensitivity: low
+      notes: "Dados publicos, mas termos de uso Alpha Vantage aplicam"
+
+    - id: ASSET-005
+      name: "API Keys Externas"
+      type: secret
+      classification: restricted
+      description: "Alpha Vantage API key, SendGrid API key, Stripe keys"
+      owner: "DevOps"
+      sensitivity: critical
+
+    - id: ASSET-006
+      name: "Historico de Alertas"
+      type: data
+      classification: internal
+      description: "Log de alertas disparados por usuario"
+      owner: "Alerts Module"
+      sensitivity: medium
+
+  # ---------------------------------------------------------------------------
+  # ACTORS
+  # ---------------------------------------------------------------------------
+  actors:
+    - id: ACTOR-001
+      name: "Usuario Anonimo"
+      trust_level: untrusted
+      description: "Visitante nao autenticado"
+      capabilities:
+        - "Acessar paginas publicas"
+        - "Registrar nova conta"
+        - "Tentar login"
+
+    - id: ACTOR-002
+      name: "Usuario Free"
+      trust_level: partial
+      description: "Usuario autenticado com tier gratuito"
+      capabilities:
+        - "Acessar dashboard"
+        - "Configurar ate 3 alertas"
+        - "Ver watchlist de 5 ativos"
+        - "Receber notificacoes email/push"
+
+    - id: ACTOR-003
+      name: "Usuario Premium"
+      trust_level: partial
+      description: "Usuario autenticado com tier pago"
+      capabilities:
+        - "Todas as capacidades do Free"
+        - "Alertas ilimitados"
+        - "Metricas avancadas (Bollinger, Beta)"
+        - "Notificacoes SMS/Telegram"
+
+    - id: ACTOR-004
+      name: "Administrador"
+      trust_level: privileged
+      description: "Operador do sistema"
+      capabilities:
+        - "Acessar metricas e logs"
+        - "Gerenciar usuarios"
+        - "Configurar sistema"
+
+    - id: ACTOR-005
+      name: "Atacante Externo"
+      trust_level: untrusted
+      description: "Ator malicioso na internet"
+      goals:
+        - "Roubar credenciais"
+        - "Acessar dados de outros usuarios"
+        - "Causar indisponibilidade"
+        - "Descobrir estrategias de investimento"
+
+    - id: ACTOR-006
+      name: "Insider Malicioso"
+      trust_level: trusted
+      description: "Funcionario ou contratado com acesso privilegiado"
+      goals:
+        - "Exfiltrar dados de usuarios"
+        - "Abusar de acessos privilegiados"
+
+  # ---------------------------------------------------------------------------
+  # COMPONENTS
+  # ---------------------------------------------------------------------------
+  components:
+    - id: COMP-001
+      name: "Web Application (Next.js)"
+      type: web_app
+      technology: "Next.js 14 / React"
+      trust_zone: internet
+      entry_points:
+        - name: "HTTPS Public"
+          protocol: "HTTPS"
+          port: 443
+          authentication: "None (pages publicas) / JWT (autenticadas)"
+
+    - id: COMP-002
+      name: "Backend API"
+      type: api
+      technology: "ASP.NET Core 8"
+      trust_zone: dmz
+      entry_points:
+        - name: "REST API"
+          protocol: "HTTPS"
+          port: 443
+          path: "/api/v1/*"
+          authentication: "JWT Bearer"
+
+    - id: COMP-003
+      name: "Background Worker"
+      type: worker
+      technology: ".NET 8 Worker Service"
+      trust_zone: internal
+      entry_points:
+        - name: "Internal Only"
+          protocol: "N/A"
+          authentication: "Service account"
+
+    - id: COMP-004
+      name: "Notification Service"
+      type: worker
+      technology: ".NET 8 Worker Service"
+      trust_zone: internal
+      entry_points:
+        - name: "Redis Stream Consumer"
+          protocol: "TCP"
+          authentication: "Redis auth"
+
+    - id: COMP-005
+      name: "PostgreSQL Database"
+      type: database
+      technology: "PostgreSQL 16"
+      trust_zone: restricted
+      entry_points:
+        - name: "PostgreSQL Protocol"
+          protocol: "TCP"
+          port: 5432
+          authentication: "Username/Password"
+
+    - id: COMP-006
+      name: "Redis Cache"
+      type: cache
+      technology: "Redis 7"
+      trust_zone: internal
+      entry_points:
+        - name: "Redis Protocol"
+          protocol: "TCP"
+          port: 6379
+          authentication: "Password"
+
+  # ---------------------------------------------------------------------------
+  # DATA FLOWS
+  # ---------------------------------------------------------------------------
+  data_flows:
+    - id: FLOW-001
+      name: "User Login"
+      source: COMP-001
+      destination: COMP-002
+      data_classification: confidential
+      protocol: "HTTPS"
+      encrypted: true
+      data_elements: ["email", "password"]
+
+    - id: FLOW-002
+      name: "JWT Token Response"
+      source: COMP-002
+      destination: COMP-001
+      data_classification: confidential
+      protocol: "HTTPS"
+      encrypted: true
+      data_elements: ["access_token", "refresh_token"]
+
+    - id: FLOW-003
+      name: "API Requests"
+      source: COMP-001
+      destination: COMP-002
+      data_classification: internal
+      protocol: "HTTPS"
+      encrypted: true
+      data_elements: ["alerts", "watchlist", "preferences"]
+
+    - id: FLOW-004
+      name: "Database Queries"
+      source: COMP-002
+      destination: COMP-005
+      data_classification: confidential
+      protocol: "TCP/TLS"
+      encrypted: true
+      data_elements: ["user_data", "alerts", "market_data"]
+
+    - id: FLOW-005
+      name: "Cache Operations"
+      source: COMP-002
+      destination: COMP-006
+      data_classification: internal
+      protocol: "TCP"
+      encrypted: false  # TLS opcional para Redis
+      data_elements: ["cached_metrics", "session_data"]
+
+    - id: FLOW-006
+      name: "Alert Events"
+      source: COMP-003
+      destination: COMP-006
+      data_classification: internal
+      protocol: "Redis Streams"
+      encrypted: false
+      data_elements: ["alert_id", "user_id", "trigger_data"]
+
+    - id: FLOW-007
+      name: "External API Calls"
+      source: COMP-003
+      destination: "Alpha Vantage"
+      data_classification: public
+      protocol: "HTTPS"
+      encrypted: true
+      data_elements: ["market_data_request"]
+
+  # ---------------------------------------------------------------------------
+  # THREATS (STRIDE)
+  # ---------------------------------------------------------------------------
+  threats:
+    # =========================================================================
+    # SPOOFING - Fingir ser outra pessoa/sistema
+    # =========================================================================
+    spoofing:
+      - id: S-001
+        title: "Credential Stuffing"
+        description: |
+          Atacante usa listas de credenciais vazadas de outros sites
+          para tentar acessar contas de usuarios.
+        affected_component: COMP-002
+        attack_vector: "Automated login attempts with leaked credentials"
+        impact: |
+          Acesso nao autorizado a contas de usuarios.
+          Exposicao de configuracoes de alertas (estrategias).
+          Abuso de recursos (envio de notificacoes).
+        risk_level: high
+        dread_score:
+          damage: 7
+          reproducibility: 9
+          exploitability: 8
+          affected_users: 6
+          discoverability: 8
+          total: 7.6
+        mitigation:
+          description: |
+            - Rate limiting de login (5 tentativas por IP em 15 min)
+            - CAPTCHA apos 3 falhas
+            - Monitoramento de login anomalo (geo, device)
+            - Notificacao de login em novo dispositivo
+          status: proposed
+          controls:
+            - "CTRL-001: Rate limiting"
+            - "CTRL-002: CAPTCHA"
+            - "CTRL-003: Login anomaly detection"
+
+      - id: S-002
+        title: "JWT Token Theft"
+        description: |
+          Atacante rouba JWT de usuario legitimo via XSS ou
+          interceptacao de rede.
+        affected_component: COMP-001
+        attack_vector: "XSS injection or network interception"
+        impact: |
+          Impersonacao de usuario.
+          Acesso a dados e configuracoes do usuario.
+        risk_level: high
+        dread_score:
+          damage: 8
+          reproducibility: 5
+          exploitability: 5
+          affected_users: 5
+          discoverability: 6
+          total: 5.8
+        mitigation:
+          description: |
+            - Tokens com expiracao curta (15 min)
+            - HttpOnly cookies para refresh tokens
+            - CSP headers para prevenir XSS
+            - Refresh token rotation
+          status: proposed
+          controls:
+            - "CTRL-004: Short-lived tokens"
+            - "CTRL-005: HttpOnly cookies"
+            - "CTRL-006: CSP headers"
+
+      - id: S-003
+        title: "API Key Exposure"
+        description: |
+          API key da Alpha Vantage ou outros servicos exposta em
+          codigo frontend ou logs.
+        affected_component: COMP-001
+        attack_vector: "Source code inspection, log analysis"
+        impact: |
+          Abuso de quota da API.
+          Custo financeiro para APIs pagas.
+          Bloqueio de servico por violacao de ToS.
+        risk_level: medium
+        mitigation:
+          description: |
+            - API keys apenas no backend (nunca frontend)
+            - Secrets em Azure Key Vault
+            - Scan de secrets em commits (detect-secrets)
+            - Rotacao periodica de keys
+          status: proposed
+          controls:
+            - "CTRL-007: Backend-only secrets"
+            - "CTRL-008: Secret scanning"
+
+    # =========================================================================
+    # TAMPERING - Modificar dados/codigo
+    # =========================================================================
+    tampering:
+      - id: T-001
+        title: "SQL Injection"
+        description: |
+          Atacante injeta SQL malicioso via inputs de usuario
+          para modificar ou extrair dados.
+        affected_component: COMP-002
+        attack_vector: "Malicious input in API parameters"
+        impact: |
+          Acesso a dados de todos os usuarios.
+          Modificacao de dados (alertas, usuarios).
+          Potencial execucao de comandos no DB.
+        risk_level: critical
+        mitigation:
+          description: |
+            - Parameterized queries (Entity Framework)
+            - Input validation (FluentValidation)
+            - Principio do menor privilegio para DB user
+            - WAF rules para SQL injection patterns
+          status: proposed
+          controls:
+            - "CTRL-009: Parameterized queries"
+            - "CTRL-010: Input validation"
+
+      - id: T-002
+        title: "Alert Configuration Tampering"
+        description: |
+          Usuario tenta modificar alertas de outros usuarios
+          via manipulacao de IDs na API.
+        affected_component: COMP-002
+        attack_vector: "IDOR (Insecure Direct Object Reference)"
+        impact: |
+          Modificacao de alertas alheios.
+          Exclusao de alertas de outros usuarios.
+          Exposicao de configuracoes (estrategias).
+        risk_level: high
+        mitigation:
+          description: |
+            - Verificar ownership em todas as operacoes
+            - IDs opacos (UUID) ao inves de sequenciais
+            - Authorization check em cada request
+            - Audit logging de modificacoes
+          status: proposed
+          controls:
+            - "CTRL-011: Ownership verification"
+            - "CTRL-012: Opaque IDs"
+
+      - id: T-003
+        title: "Cache Poisoning"
+        description: |
+          Atacante insere dados maliciosos no cache Redis
+          que sao servidos a outros usuarios.
+        affected_component: COMP-006
+        attack_vector: "Exploiting cache key predictability"
+        impact: |
+          Dados incorretos servidos a usuarios.
+          Metricas falsas exibidas.
+          Alertas incorretos disparados.
+        risk_level: medium
+        mitigation:
+          description: |
+            - Cache keys com namespace por usuario quando aplicavel
+            - Redis nao exposto publicamente
+            - Validacao de dados antes de cachear
+            - TTL curto para dados criticos
+          status: proposed
+          controls:
+            - "CTRL-013: Cache isolation"
+            - "CTRL-014: Network isolation"
+
+    # =========================================================================
+    # REPUDIATION - Negar acoes
+    # =========================================================================
+    repudiation:
+      - id: R-001
+        title: "Untracked Alert Modifications"
+        description: |
+          Usuario modifica ou deleta alertas sem trail de auditoria,
+          podendo negar acoes posteriores.
+        affected_component: COMP-002
+        attack_vector: "Standard API operations without logging"
+        impact: |
+          Impossibilidade de rastrear quem fez o que.
+          Disputas sobre configuracoes de alertas.
+          Dificuldade em investigar incidentes.
+        risk_level: medium
+        mitigation:
+          description: |
+            - Audit log para todas as modificacoes
+            - Registro de IP, timestamp, user_id
+            - Logs imutaveis (append-only)
+            - Retencao de logs por 90 dias minimo
+          status: proposed
+          controls:
+            - "CTRL-015: Audit logging"
+            - "CTRL-016: Immutable logs"
+
+      - id: R-002
+        title: "Notification Delivery Dispute"
+        description: |
+          Usuario alega nao ter recebido alerta importante,
+          impossibilidade de provar envio.
+        affected_component: COMP-004
+        attack_vector: "N/A - operational issue"
+        impact: |
+          Disputas com usuarios.
+          Potencial responsabilidade legal.
+          Reputacao afetada.
+        risk_level: low
+        mitigation:
+          description: |
+            - Log de todas as tentativas de envio
+            - Armazenar status de delivery (sent, delivered, failed)
+            - Integrar com webhooks de email para confirmacao
+            - Dashboard de historico de alertas para usuario
+          status: proposed
+          controls:
+            - "CTRL-017: Delivery tracking"
+
+    # =========================================================================
+    # INFORMATION DISCLOSURE - Vazamento de dados
+    # =========================================================================
+    information_disclosure:
+      - id: I-001
+        title: "User Data Breach via API"
+        description: |
+          Atacante explora vulnerabilidade para acessar dados
+          de usuarios (PII, alertas, watchlists).
+        affected_component: COMP-002
+        attack_vector: "API vulnerabilities, broken access control"
+        impact: |
+          Exposicao de dados pessoais (LGPD violation).
+          Exposicao de estrategias de investimento.
+          Dano reputacional.
+          Multas regulatorias.
+        risk_level: critical
+        mitigation:
+          description: |
+            - Authorization rigorosa em todos os endpoints
+            - Encryption at rest para dados sensiveis
+            - Principle of least privilege
+            - Data masking em logs
+            - Security testing (SAST, DAST, pentest)
+          status: proposed
+          controls:
+            - "CTRL-018: Authorization checks"
+            - "CTRL-019: Encryption at rest"
+            - "CTRL-020: Data masking"
+
+      - id: I-002
+        title: "Error Message Information Leakage"
+        description: |
+          Mensagens de erro detalhadas revelam informacoes
+          sobre arquitetura, stack, ou dados internos.
+        affected_component: COMP-002
+        attack_vector: "Triggering errors and analyzing responses"
+        impact: |
+          Facilita outros ataques.
+          Revela stack tecnologico.
+          Pode expor dados parciais.
+        risk_level: medium
+        mitigation:
+          description: |
+            - Mensagens de erro genericas para producao
+            - Exception handling centralizado
+            - Stack traces apenas em logs internos
+            - Custom error pages
+          status: proposed
+          controls:
+            - "CTRL-021: Generic error messages"
+
+      - id: I-003
+        title: "Sensitive Data in Logs"
+        description: |
+          Logs capturam senhas, tokens, ou PII inadvertidamente.
+        affected_component: COMP-002
+        attack_vector: "Log file access"
+        impact: |
+          Exposicao de credenciais.
+          Violacao LGPD.
+        risk_level: high
+        mitigation:
+          description: |
+            - Masking automatico de campos sensiveis
+            - Nao logar bodies de requests com PII
+            - Exclusion lists para parametros sensiveis
+            - Access control em sistemas de logs
+          status: proposed
+          controls:
+            - "CTRL-022: Log sanitization"
+
+    # =========================================================================
+    # DENIAL OF SERVICE - Indisponibilidade
+    # =========================================================================
+    denial_of_service:
+      - id: D-001
+        title: "API Rate Abuse"
+        description: |
+          Atacante faz volume alto de requests para esgotar
+          recursos ou bloquear usuarios legitimos.
+        affected_component: COMP-002
+        attack_vector: "Automated high-volume requests"
+        impact: |
+          Servico indisponivel.
+          Custo de infraestrutura aumentado.
+          Usuarios nao recebem alertas.
+        risk_level: high
+        mitigation:
+          description: |
+            - Rate limiting por IP e usuario
+            - WAF com regras anti-DDoS
+            - CDN para absorver trafego
+            - Auto-scaling para picos legitimos
+          status: proposed
+          controls:
+            - "CTRL-023: Rate limiting"
+            - "CTRL-024: WAF"
+            - "CTRL-025: CDN"
+
+      - id: D-002
+        title: "Alpha Vantage Quota Exhaustion"
+        description: |
+          Atacante ou bug consome toda a quota da API gratuita,
+          impedindo ingestao de dados.
+        affected_component: COMP-003
+        attack_vector: "Excessive API calls"
+        impact: |
+          Sem dados de mercado.
+          Alertas nao disparam.
+          Servico degradado.
+        risk_level: medium
+        mitigation:
+          description: |
+            - Monitorar uso de quota
+            - Cache agressivo para reduzir calls
+            - Fallback para dados anteriores
+            - Alerta quando quota em 80%
+          status: proposed
+          controls:
+            - "CTRL-026: Quota monitoring"
+            - "CTRL-027: Aggressive caching"
+
+      - id: D-003
+        title: "Database Connection Exhaustion"
+        description: |
+          Excesso de conexoes ao PostgreSQL esgota pool,
+          causando timeouts e falhas.
+        affected_component: COMP-005
+        attack_vector: "Connection leak or high load"
+        impact: |
+          API indisponivel.
+          Dados nao podem ser lidos/escritos.
+        risk_level: medium
+        mitigation:
+          description: |
+            - PgBouncer para connection pooling
+            - Connection limits por servico
+            - Timeouts em queries
+            - Monitoramento de conexoes ativas
+          status: proposed
+          controls:
+            - "CTRL-028: Connection pooling"
+
+    # =========================================================================
+    # ELEVATION OF PRIVILEGE - Escalar privilegios
+    # =========================================================================
+    elevation_of_privilege:
+      - id: E-001
+        title: "Free to Premium Bypass"
+        description: |
+          Usuario free tenta acessar features premium
+          manipulando tokens ou requests.
+        affected_component: COMP-002
+        attack_vector: "Token manipulation, IDOR, API abuse"
+        impact: |
+          Perda de receita.
+          Abuso de recursos premium.
+          Competicao desleal com usuarios pagantes.
+        risk_level: medium
+        mitigation:
+          description: |
+            - Tier verificado no backend a cada request
+            - Claims de tier assinados no JWT
+            - Validacao de subscription status em real-time
+            - Audit de acessos a features premium
+          status: proposed
+          controls:
+            - "CTRL-029: Backend tier verification"
+            - "CTRL-030: Signed tier claims"
+
+      - id: E-002
+        title: "Admin Access Escalation"
+        description: |
+          Usuario regular tenta acessar endpoints administrativos
+          ou funcoes de administrador.
+        affected_component: COMP-002
+        attack_vector: "Guessing admin endpoints, role manipulation"
+        impact: |
+          Acesso a dados de todos os usuarios.
+          Modificacao de configuracoes do sistema.
+          Potencial shutdown do servico.
+        risk_level: critical
+        mitigation:
+          description: |
+            - Endpoints admin em path separado (/admin)
+            - Role-based access control (RBAC)
+            - MFA obrigatorio para admins
+            - IP allowlist para acesso admin
+            - Audit logging de acoes admin
+          status: proposed
+          controls:
+            - "CTRL-031: RBAC"
+            - "CTRL-032: Admin MFA"
+            - "CTRL-033: Admin IP allowlist"
+
+  # ---------------------------------------------------------------------------
+  # EXISTING CONTROLS
+  # ---------------------------------------------------------------------------
+  existing_controls:
+    - id: CTRL-001
+      name: "Rate Limiting"
+      type: preventive
+      description: "ASP.NET Core rate limiting middleware"
+      covers_threats: [S-001, D-001]
+      status: planned
+
+    - id: CTRL-004
+      name: "Short-lived JWT Tokens"
+      type: preventive
+      description: "Access tokens expiram em 15 minutos"
+      covers_threats: [S-002]
+      status: planned
+
+    - id: CTRL-009
+      name: "Parameterized Queries"
+      type: preventive
+      description: "Entity Framework Core com parameterized queries"
+      covers_threats: [T-001]
+      status: planned
+
+    - id: CTRL-018
+      name: "Authorization Checks"
+      type: preventive
+      description: "Verificacao de autorizacao em cada endpoint"
+      covers_threats: [I-001, T-002, E-001]
+      status: planned
+
+    - id: CTRL-019
+      name: "Encryption at Rest"
+      type: preventive
+      description: "TDE no PostgreSQL, AES-256 para campos sensiveis"
+      covers_threats: [I-001]
+      status: planned
+
+  # ---------------------------------------------------------------------------
+  # RISK SUMMARY
+  # ---------------------------------------------------------------------------
+  risk_summary:
+    critical: 3  # T-001, I-001, E-002
+    high: 5      # S-001, S-002, T-002, I-003, D-001
+    medium: 6    # S-003, T-003, R-001, I-002, D-002, D-003, E-001
+    low: 1       # R-002
+    accepted: 0
+
+    priority_order:
+      - T-001  # SQL Injection - critical
+      - I-001  # User Data Breach - critical
+      - E-002  # Admin Access Escalation - critical
+      - S-001  # Credential Stuffing - high
+      - S-002  # JWT Token Theft - high
+
+  # ---------------------------------------------------------------------------
+  # ACTION ITEMS
+  # ---------------------------------------------------------------------------
+  action_items:
+    - id: ACTION-001
+      description: "Implementar rate limiting em todos os endpoints de autenticacao"
+      owner: backend-dev
+      priority: high
+      due_date: "Sprint 1"
+      status: pending
+      related_threats: [S-001, D-001]
+
+    - id: ACTION-002
+      description: "Configurar CSP headers e HttpOnly cookies"
+      owner: frontend-dev
+      priority: high
+      due_date: "Sprint 1"
+      status: pending
+      related_threats: [S-002]
+
+    - id: ACTION-003
+      description: "Setup secret scanning em CI/CD (detect-secrets)"
+      owner: devops
+      priority: medium
+      due_date: "Sprint 1"
+      status: pending
+      related_threats: [S-003]
+
+    - id: ACTION-004
+      description: "Implementar audit logging para todas as modificacoes de dados"
+      owner: backend-dev
+      priority: medium
+      due_date: "Sprint 2"
+      status: pending
+      related_threats: [R-001]
+
+    - id: ACTION-005
+      description: "Configurar WAF rules anti-DDoS"
+      owner: devops
+      priority: medium
+      due_date: "Sprint 2"
+      status: pending
+      related_threats: [D-001]
+
+    - id: ACTION-006
+      description: "Security review antes do go-live (SAST, DAST, pentest)"
+      owner: security-lead
+      priority: critical
+      due_date: "Pre-release"
+      status: pending
+      related_threats: [T-001, I-001, E-002]
+
+  # ---------------------------------------------------------------------------
+  # APPROVALS
+  # ---------------------------------------------------------------------------
+  approvals:
+    - role: security_lead
+      name: ""
+      date: ""
+      status: pending
+      comments: ""
+
+    - role: tech_lead
+      name: ""
+      date: ""
+      status: pending
+      comments: ""
+
+  # ---------------------------------------------------------------------------
+  # RELATED DECISIONS
+  # ---------------------------------------------------------------------------
+  related_adrs:
+    - adr-009  # Security controls ADR

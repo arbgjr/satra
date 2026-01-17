@@ -1,0 +1,30 @@
+%% C4 Context Diagram - Sistema de Alertas B3
+%% Project: proj-75602fb4
+%% Created: 2026-01-17T15:48:12Z
+
+C4Context
+    title System Context - Sistema de Alertas B3
+
+    Person(investor, "Investidor", "Usuario que configura alertas e monitora volatilidade de ativos da B3")
+    Person(admin, "Administrador", "Operador do sistema para monitoramento e configuracao")
+
+    System(satra, "Sistema de Alertas B3", "Plataforma SaaS para monitoramento de volatilidade e alertas em tempo real")
+
+    System_Ext(alphavantage, "Alpha Vantage API", "Fonte de dados OHLC e metricas de mercado")
+    System_Ext(email_service, "Email Service", "SendGrid/AWS SES para envio de emails")
+    System_Ext(push_service, "Push Service", "Firebase/Web Push para notificacoes")
+    System_Ext(sms_gateway, "SMS Gateway", "Twilio/Zenvia para SMS (premium)")
+    System_Ext(telegram, "Telegram API", "Bot API para notificacoes (premium)")
+    System_Ext(stripe, "Stripe", "Gateway de pagamentos")
+
+    Rel(investor, satra, "Configura alertas, visualiza metricas", "HTTPS")
+    Rel(admin, satra, "Monitora, configura", "HTTPS")
+
+    Rel(satra, alphavantage, "Obtem dados de mercado", "HTTPS/REST")
+    Rel(satra, email_service, "Envia alertas", "HTTPS/API")
+    Rel(satra, push_service, "Envia push notifications", "HTTPS/API")
+    Rel(satra, sms_gateway, "Envia SMS", "HTTPS/API")
+    Rel(satra, telegram, "Envia mensagens", "HTTPS/API")
+    Rel(satra, stripe, "Processa pagamentos", "HTTPS/API")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

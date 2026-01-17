@@ -1,0 +1,557 @@
+# =============================================================================
+# Technology Stack - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 2 - Architecture & Design
+# Created: 2026-01-17T15:52:08Z
+# Author: system-architect
+# Status: proposed
+# =============================================================================
+
+tech_stack:
+  metadata:
+    project_id: proj-75602fb4
+    project_name: "Sistema de Alertas B3"
+    version: "1.0.0"
+    created_at: "2026-01-17T15:52:08Z"
+    updated_at: "2026-01-17T15:52:08Z"
+    author: system-architect
+    status: proposed
+
+  # ---------------------------------------------------------------------------
+  # SUMMARY
+  # ---------------------------------------------------------------------------
+  summary: |
+    Stack tecnologica selecionada para o Sistema de Alertas B3, otimizada para:
+    - MVP rapido com equipe pequena
+    - Custo operacional baixo
+    - Performance adequada para real-time
+    - Ecossistema maduro e bem documentado
+    - Familiaridade do time
+
+  # ---------------------------------------------------------------------------
+  # BACKEND
+  # ---------------------------------------------------------------------------
+  backend:
+    runtime:
+      name: ".NET 8"
+      version: "8.0 LTS"
+      release_date: "November 2023"
+      lts_until: "November 2026"
+      rationale: |
+        - Performance excelente (benchmarks consistentemente no top 5)
+        - Excelente suporte a async/await para I/O-bound workloads
+        - Worker Services nativos para background processing
+        - Maturidade do ecossistema (NuGet, tooling)
+        - Hot reload para desenvolvimento rapido
+        - AOT compilation opcional para performance
+
+    web_framework:
+      name: "ASP.NET Core"
+      version: "8.0"
+      type: "Web API"
+      features:
+        - "Minimal APIs para endpoints simples"
+        - "Controller-based para endpoints complexos"
+        - "Built-in OpenAPI/Swagger support"
+        - "Rate limiting middleware nativo"
+        - "Health checks nativos"
+        - "Response caching e compression"
+
+    orm:
+      name: "Entity Framework Core"
+      version: "8.0"
+      approach: "Code First"
+      features:
+        - "Migrations automaticas"
+        - "Compiled queries para performance"
+        - "Interceptors para audit trails"
+        - "PostgreSQL provider (Npgsql)"
+      alternatives_considered:
+        - name: "Dapper"
+          rejected_because: "Mais manual, EF Core performante o suficiente"
+
+    authentication:
+      name: "ASP.NET Core Identity + JWT"
+      provider: "Built-in"
+      features:
+        - "Password hashing (bcrypt/Argon2)"
+        - "JWT generation e validation"
+        - "Refresh token support"
+        - "Role-based authorization"
+        - "Claims-based authorization"
+      external_option: "Keycloak ou Auth0 se precisar SSO futuro"
+
+    http_client:
+      name: "HttpClient + Polly"
+      purpose: "Chamadas para APIs externas (Alpha Vantage)"
+      features:
+        - "Retry com exponential backoff"
+        - "Circuit breaker"
+        - "Timeout handling"
+        - "Typed clients"
+
+    background_jobs:
+      name: "Hangfire"
+      version: "1.8.x"
+      storage: "PostgreSQL"
+      features:
+        - "Scheduled jobs (CRON)"
+        - "Fire-and-forget jobs"
+        - "Dashboard web para monitoramento"
+        - "Retry automatico"
+      alternative: "Quartz.NET se precisar de scheduling mais complexo"
+
+    validation:
+      name: "FluentValidation"
+      version: "11.x"
+      purpose: "Validacao de DTOs e requests"
+
+    mapping:
+      name: "Mapster"
+      version: "7.x"
+      purpose: "Mapeamento entre entities e DTOs"
+      rationale: "Mais rapido que AutoMapper, API similar"
+
+    logging:
+      name: "Serilog"
+      version: "3.x"
+      sinks:
+        - "Console (desenvolvimento)"
+        - "File (fallback)"
+        - "Loki (producao)"
+      features:
+        - "Structured logging (JSON)"
+        - "Enrichers para request info"
+        - "Correlation IDs"
+
+    metrics:
+      name: "Prometheus.NET"
+      version: "8.x"
+      endpoint: "/metrics"
+      format: "OpenMetrics"
+
+    testing:
+      unit:
+        framework: "xUnit"
+        mocking: "NSubstitute"
+        assertions: "FluentAssertions"
+      integration:
+        framework: "xUnit + WebApplicationFactory"
+        database: "TestContainers"
+      performance:
+        tool: "BenchmarkDotNet"
+
+  # ---------------------------------------------------------------------------
+  # FRONTEND
+  # ---------------------------------------------------------------------------
+  frontend:
+    framework:
+      name: "Next.js"
+      version: "14.x"
+      react_version: "18.x"
+      rationale: |
+        - SSR para SEO e performance inicial
+        - App Router para layouts e streaming
+        - Server Actions para mutations
+        - Built-in image optimization
+        - Excelente DX com Fast Refresh
+        - PWA support via next-pwa
+
+    language:
+      name: "TypeScript"
+      version: "5.x"
+      strict_mode: true
+
+    styling:
+      name: "Tailwind CSS"
+      version: "3.x"
+      rationale: |
+        - Utility-first para prototipacao rapida
+        - Excelente para design system
+        - Tree-shaking para bundle minimo
+      component_library: "shadcn/ui"
+      rationale_components: |
+        - Componentes acessiveis (WCAG 2.1)
+        - Customizaveis (source code copiado)
+        - Baseados em Radix UI primitives
+
+    state_management:
+      name: "TanStack Query (React Query)"
+      version: "5.x"
+      purpose: "Server state management"
+      features:
+        - "Caching automatico"
+        - "Background refetching"
+        - "Optimistic updates"
+        - "Infinite queries"
+      local_state: "Zustand para UI state"
+
+    forms:
+      name: "React Hook Form"
+      version: "7.x"
+      validation: "Zod"
+      rationale: "Performance superior, validacao type-safe"
+
+    charts:
+      name: "Recharts"
+      version: "2.x"
+      rationale: |
+        - React-native (composable)
+        - Responsivo
+        - Acessivel
+        - Bundle size razoavel
+      alternative: "TradingView Lightweight Charts para graficos financeiros avancados"
+
+    pwa:
+      enabled: true
+      package: "next-pwa"
+      features:
+        - "Service Worker"
+        - "Offline support"
+        - "Push notifications"
+        - "Install prompt"
+
+    testing:
+      unit: "Vitest"
+      component: "Testing Library"
+      e2e: "Playwright"
+
+  # ---------------------------------------------------------------------------
+  # DATABASE
+  # ---------------------------------------------------------------------------
+  database:
+    primary:
+      name: "PostgreSQL"
+      version: "16"
+      rationale: |
+        - Excelente suporte a JSON/JSONB para dados semi-estruturados
+        - Full-text search nativo
+        - Materialized views para metricas agregadas
+        - Extensoes uteis (TimescaleDB se precisar time-series)
+        - Managed offerings em todos os cloud providers
+        - Open source, sem vendor lock-in
+
+      features_used:
+        - "JSONB para preferencias de usuario"
+        - "Indexes parciais para queries frequentes"
+        - "Partitioning para tabelas de historico"
+        - "pg_stat_statements para query analysis"
+
+      connection_pooling:
+        name: "PgBouncer"
+        mode: "transaction"
+        rationale: "Reduz overhead de conexoes para workers"
+
+      backup:
+        strategy: "pg_dump diario + WAL archiving"
+        retention: "30 dias"
+        tested: "Restore testado mensalmente"
+
+    time_series_consideration: |
+      Para MVP, PostgreSQL e suficiente.
+      Se volume de dados de mercado crescer muito, considerar:
+      - TimescaleDB (extensao PostgreSQL)
+      - InfluxDB (dedicado)
+      Migrar e relativamente facil por ser extensao.
+
+  # ---------------------------------------------------------------------------
+  # CACHE
+  # ---------------------------------------------------------------------------
+  cache:
+    primary:
+      name: "Redis"
+      version: "7.x"
+      deployment: "Shared Infrastructure (~/.local/services/)"
+      rationale: |
+        - Performance excepcional (<1ms latency)
+        - Versatil: cache, sessoes, filas, rate limiting
+        - Redis Streams para event-driven communication
+        - Pub/Sub para real-time updates (futuro)
+        - Operacionalmente simples
+
+      use_cases:
+        - cache: "Dados OHLC, metricas calculadas"
+        - sessions: "JWT refresh tokens, user sessions"
+        - rate_limiting: "API rate limit counters"
+        - queues: "Redis Streams para alertas e notificacoes"
+        - locks: "Distributed locks para dedup"
+
+      data_structures:
+        - "STRING: cache de dados JSON"
+        - "HASH: sessoes de usuario"
+        - "SORTED SET: rate limiting sliding window"
+        - "STREAM: fila de eventos"
+
+      ttl_policy:
+        ohlc_intraday: "60 segundos"
+        ohlc_daily: "24 horas"
+        metrics: "60 segundos"
+        sessions: "7 dias"
+
+      high_availability:
+        mvp: "Single instance"
+        growth: "Redis Sentinel (3 nodes)"
+        enterprise: "Redis Cluster"
+
+  # ---------------------------------------------------------------------------
+  # MESSAGE BROKER
+  # ---------------------------------------------------------------------------
+  messaging:
+    primary:
+      name: "Redis Streams"
+      rationale: |
+        - Ja temos Redis na stack
+        - Suficiente para volume do MVP
+        - Simples de operar
+        - Consumer groups para paralelismo
+        - Persistencia garantida
+
+      streams:
+        - name: "market_data_events"
+          purpose: "Eventos de novos dados de mercado"
+          consumers: ["metrics_calculator"]
+
+        - name: "metrics_events"
+          purpose: "Eventos de metricas calculadas"
+          consumers: ["alert_evaluator"]
+
+        - name: "alert_events"
+          purpose: "Alertas disparados para notificacao"
+          consumers: ["notification_service"]
+
+        - name: "notification_dlq"
+          purpose: "Dead letter queue para falhas"
+          consumers: ["manual_review"]
+
+      migration_path: |
+        Se escala exigir, migrar para:
+        - RabbitMQ: para routing complexo
+        - Kafka: para alto volume e replay
+
+    alternatives_considered:
+      - name: "RabbitMQ"
+        rejected_because: |
+          Componente adicional de infraestrutura.
+          Features avancadas (routing) nao necessarias para MVP.
+
+      - name: "Apache Kafka"
+        rejected_because: |
+          Overhead operacional muito alto para MVP.
+          Volume de eventos nao justifica.
+
+  # ---------------------------------------------------------------------------
+  # EXTERNAL SERVICES
+  # ---------------------------------------------------------------------------
+  external_services:
+    market_data:
+      name: "Alpha Vantage"
+      tier: "Free (upgrade to Premium if needed)"
+      endpoints:
+        - "TIME_SERIES_DAILY"
+        - "TIME_SERIES_INTRADAY"
+        - "ATR"
+        - "BBANDS"
+      rate_limits:
+        free: "5 calls/min, 500 calls/day"
+        premium: "75 calls/min, unlimited daily"
+      decision: "adr-001"
+
+    email:
+      name: "SendGrid"
+      tier: "Free (100 emails/day) -> Essentials"
+      rationale: |
+        - Free tier generoso para MVP
+        - API simples
+        - Templates HTML
+        - Analytics de delivery
+      alternative: "AWS SES (mais barato em escala)"
+
+    push_notifications:
+      name: "Web Push API"
+      implementation: "Self-hosted via web-push library"
+      rationale: |
+        - Sem custo de servico externo
+        - VAPID keys gerenciadas internamente
+        - Funciona em todos os browsers modernos
+      fallback: "Firebase Cloud Messaging se precisar de mobile nativo"
+
+    sms:
+      name: "Zenvia"
+      tier: "Pay-as-you-go"
+      rationale: |
+        - Melhor cobertura Brasil
+        - API simples
+        - Custo competitivo (~R$0.10/SMS)
+      alternative: "Twilio (mais caro, melhor docs)"
+
+    telegram:
+      name: "Telegram Bot API"
+      cost: "Free"
+      implementation: "Direct API calls via HttpClient"
+
+    payments:
+      name: "Stripe"
+      rationale: |
+        - API excelente e bem documentada
+        - Checkout hosted (menos PCI scope)
+        - Webhooks confiaveis
+        - Suporte a BRL
+      alternative: "PagSeguro/MercadoPago para checkout mais brasileiro"
+
+  # ---------------------------------------------------------------------------
+  # INFRASTRUCTURE
+  # ---------------------------------------------------------------------------
+  infrastructure:
+    containerization:
+      name: "Docker"
+      compose_version: "3.8"
+      base_images:
+        dotnet: "mcr.microsoft.com/dotnet/aspnet:8.0-alpine"
+        node: "node:20-alpine"
+
+    local_development:
+      orchestration: "Docker Compose"
+      shared_services: "~/.local/services/"
+      services:
+        - "PostgreSQL (shared)"
+        - "Redis (shared)"
+        - "Keycloak (shared, se usar)"
+
+    cloud_provider:
+      primary: "Azure"
+      rationale: |
+        - Melhor integracao com .NET
+        - Azure Container Apps: serverless containers
+        - Azure Database for PostgreSQL
+        - Azure Cache for Redis
+        - Preco competitivo para workloads pequenos
+      alternative: "AWS (ECS/App Runner, RDS, ElastiCache)"
+
+    hosting_mvp:
+      compute: "Azure Container Apps"
+      database: "Azure Database for PostgreSQL - Flexible Server"
+      cache: "Azure Cache for Redis - Basic"
+      storage: "Azure Blob Storage (backups, logs)"
+      cdn: "Azure CDN ou Cloudflare (free)"
+
+    ci_cd:
+      platform: "GitHub Actions"
+      stages:
+        - "Build & Test"
+        - "Security Scan (Dependabot, CodeQL)"
+        - "Docker Build & Push"
+        - "Deploy to Staging"
+        - "E2E Tests"
+        - "Deploy to Production (manual approval)"
+
+    monitoring:
+      apm: "Azure Application Insights ou Elastic APM"
+      logs: "Loki + Grafana"
+      metrics: "Prometheus + Grafana"
+      uptime: "UptimeRobot ou Checkly"
+      alerting: "Grafana Alerting"
+
+    secrets:
+      development: "dotnet user-secrets"
+      production: "Azure Key Vault"
+
+  # ---------------------------------------------------------------------------
+  # DEVELOPMENT TOOLS
+  # ---------------------------------------------------------------------------
+  development:
+    ide:
+      recommended:
+        - "Visual Studio 2022 (Windows)"
+        - "JetBrains Rider (cross-platform)"
+        - "VS Code com extensoes C# Dev Kit"
+
+    code_quality:
+      linting:
+        backend: ".editorconfig + Roslyn Analyzers"
+        frontend: "ESLint + Prettier"
+      formatting:
+        backend: "dotnet format"
+        frontend: "Prettier"
+
+    git:
+      branching: "GitHub Flow"
+      commit_style: "Conventional Commits"
+      hooks: "Husky (frontend) + pre-commit (backend)"
+
+    documentation:
+      api: "OpenAPI 3.0 + Swagger UI"
+      architecture: "ADRs em YAML"
+      code: "XML comments (.NET) + JSDoc (React)"
+
+  # ---------------------------------------------------------------------------
+  # SECURITY TOOLS
+  # ---------------------------------------------------------------------------
+  security:
+    dependency_scanning:
+      backend: "Dependabot + NuGetAudit"
+      frontend: "Dependabot + npm audit"
+
+    sast:
+      tool: "GitHub CodeQL"
+      languages: ["csharp", "javascript", "typescript"]
+
+    secrets_detection:
+      tool: "GitHub Secret Scanning"
+      pre_commit: "detect-secrets"
+
+    container_scanning:
+      tool: "Trivy"
+      integration: "GitHub Actions"
+
+  # ---------------------------------------------------------------------------
+  # COST ESTIMATION (MVP)
+  # ---------------------------------------------------------------------------
+  cost_estimation:
+    monthly:
+      compute:
+        service: "Azure Container Apps"
+        estimate: "$20-50"
+        notes: "2 vCPU, 4GB RAM, scale to zero"
+
+      database:
+        service: "Azure Database for PostgreSQL - Flexible Server"
+        tier: "Burstable B1ms"
+        estimate: "$15-25"
+        notes: "1 vCPU, 2GB RAM, 32GB storage"
+
+      cache:
+        service: "Azure Cache for Redis"
+        tier: "Basic C0"
+        estimate: "$15"
+        notes: "250MB"
+
+      storage:
+        service: "Azure Blob Storage"
+        estimate: "$5"
+        notes: "Backups, logs"
+
+      email:
+        service: "SendGrid Free"
+        estimate: "$0"
+        notes: "100 emails/day suficiente para MVP"
+
+      total_mvp: "$55-95/month"
+
+    growth_estimation:
+      compute: "$100-200"
+      database: "$50-100"
+      cache: "$50"
+      email: "$15"
+      total: "$215-365/month"
+
+  # ---------------------------------------------------------------------------
+  # RELATED DECISIONS
+  # ---------------------------------------------------------------------------
+  related_adrs:
+    - adr-004  # Arquitetura modular monolith
+    - adr-005  # Stack backend (.NET 8)
+    - adr-006  # Stack frontend (Next.js)
+    - adr-007  # Banco de dados (PostgreSQL)
+    - adr-008  # Cache (Redis)
+    - adr-009  # Message broker (Redis Streams)

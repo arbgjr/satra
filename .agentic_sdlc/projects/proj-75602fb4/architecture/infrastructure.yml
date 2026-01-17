@@ -1,0 +1,585 @@
+# =============================================================================
+# Infrastructure Architecture - Sistema de Alertas B3
+# =============================================================================
+# Project: proj-75602fb4
+# Phase: 2 - Architecture & Design
+# Created: 2026-01-17T16:12:44Z
+# Author: iac-engineer
+# Status: proposed
+# =============================================================================
+
+infrastructure:
+  metadata:
+    project_id: proj-75602fb4
+    version: "1.0.0"
+    created_at: "2026-01-17T16:12:44Z"
+    updated_at: "2026-01-17T16:12:44Z"
+    author: iac-engineer
+    status: proposed
+
+  # ---------------------------------------------------------------------------
+  # OVERVIEW
+  # ---------------------------------------------------------------------------
+  overview:
+    cloud_provider: "Azure (primary)"
+    alternative: "AWS App Runner + RDS + ElastiCache"
+    iac_tool: "Terraform"
+    container_runtime: "Docker"
+    orchestration:
+      development: "Docker Compose"
+      staging: "Azure Container Apps"
+      production: "Azure Container Apps"
+
+  # ---------------------------------------------------------------------------
+  # ENVIRONMENTS
+  # ---------------------------------------------------------------------------
+  environments:
+    - name: development
+      description: "Ambiente local de desenvolvimento"
+      purpose: "Dev e testes locais"
+      infrastructure:
+        compute: "Docker Compose local"
+        database: "Shared PostgreSQL (~/.local/services/)"
+        cache: "Shared Redis (~/.local/services/)"
+        storage: "Local filesystem"
+      access:
+        developers: true
+        ci_cd: false
+      scaling: "N/A"
+      cost: "$0"
+
+    - name: staging
+      description: "Ambiente de pre-producao"
+      purpose: "Testes de integracao, QA, demos"
+      infrastructure:
+        compute: "Azure Container Apps (1 replica each)"
+        database: "Azure Database for PostgreSQL - Flexible Server (Burstable B1ms)"
+        cache: "Azure Cache for Redis - Basic C0"
+        storage: "Azure Blob Storage"
+      access:
+        developers: true
+        ci_cd: true
+        qa: true
+      scaling: "Manual"
+      cost: "~$50/month"
+      data: "Subset of production (anonymized)"
+
+    - name: production
+      description: "Ambiente de producao"
+      purpose: "Usuarios reais"
+      infrastructure:
+        compute: "Azure Container Apps (auto-scale 1-4)"
+        database: "Azure Database for PostgreSQL - Flexible Server (General Purpose)"
+        cache: "Azure Cache for Redis - Standard C1"
+        storage: "Azure Blob Storage"
+        cdn: "Azure CDN or Cloudflare"
+      access:
+        developers: false
+        ci_cd: true
+        sre: true
+      scaling: "Auto-scale based on CPU/memory"
+      cost: "~$100-200/month"
+      data: "Production data"
+
+  # ---------------------------------------------------------------------------
+  # AZURE RESOURCES
+  # ---------------------------------------------------------------------------
+  azure_resources:
+    resource_group:
+      name: "rg-satra-{env}"
+      location: "brazilsouth"
+
+    container_apps:
+      environment:
+        name: "cae-satra-{env}"
+        infrastructure_subnet: "10.0.0.0/23"
+        internal_only: false
+
+      apps:
+        - name: "ca-satra-api"
+          image: "ghcr.io/arbgjr/satra/api:latest"
+          cpu: 0.5
+          memory: "1Gi"
+          min_replicas: 1
+          max_replicas: 4
+          scale_rules:
+            - type: "cpu"
+              threshold: 70
+            - type: "memory"
+              threshold: 80
+          ingress:
+            external: true
+            target_port: 8080
+            transport: "auto"
+          probes:
+            startup:
+              path: "/health/ready"
+              period: 10
+            liveness:
+              path: "/health/live"
+              period: 30
+            readiness:
+              path: "/health/ready"
+              period: 10
+          env_vars:
+            - name: "ASPNETCORE_ENVIRONMENT"
+              value: "{env}"
+            - name: "ConnectionStrings__DefaultConnection"
+              secret_ref: "db-connection-string"
+            - name: "Redis__ConnectionString"
+              secret_ref: "redis-connection-string"
+
+        - name: "ca-satra-worker"
+          image: "ghcr.io/arbgjr/satra/worker:latest"
+          cpu: 0.5
+          memory: "1Gi"
+          min_replicas: 1
+          max_replicas: 2
+          ingress:
+            external: false
+          probes:
+            liveness:
+              path: "/health"
+              period: 30
+
+        - name: "ca-satra-notifier"
+          image: "ghcr.io/arbgjr/satra/notifier:latest"
+          cpu: 0.25
+          memory: "0.5Gi"
+          min_replicas: 1
+          max_replicas: 2
+          ingress:
+            external: false
+          probes:
+            liveness:
+              path: "/health"
+              period: 30
+
+        - name: "ca-satra-web"
+          image: "ghcr.io/arbgjr/satra/web:latest"
+          cpu: 0.25
+          memory: "0.5Gi"
+          min_replicas: 1
+          max_replicas: 2
+          ingress:
+            external: true
+            target_port: 3000
+            transport: "auto"
+          probes:
+            liveness:
+              path: "/"
+              period: 30
+
+    postgresql:
+      name: "psql-satra-{env}"
+      sku: "B_Standard_B1ms"  # Burstable, 1 vCore, 2GB RAM
+      storage_size_gb: 32
+      version: "16"
+      backup_retention_days: 7
+      geo_redundant_backup: false
+      high_availability: false
+      firewall_rules:
+        - name: "allow-container-apps"
+          start_ip: "0.0.0.0"
+          end_ip: "0.0.0.0"
+          note: "Allow Azure services"
+      databases:
+        - name: "satra"
+
+    redis:
+      name: "redis-satra-{env}"
+      sku: "Basic"
+      family: "C"
+      capacity: 0  # 250 MB
+      enable_non_ssl_port: false
+      minimum_tls_version: "1.2"
+
+    key_vault:
+      name: "kv-satra-{env}"
+      sku: "standard"
+      soft_delete_enabled: true
+      soft_delete_retention_days: 90
+      secrets:
+        - "alpha-vantage-api-key"
+        - "sendgrid-api-key"
+        - "stripe-secret-key"
+        - "jwt-signing-key"
+        - "db-connection-string"
+        - "redis-connection-string"
+
+    storage_account:
+      name: "stsatra{env}"
+      tier: "Standard"
+      replication: "LRS"
+      containers:
+        - name: "backups"
+          access: "private"
+        - name: "logs"
+          access: "private"
+
+    log_analytics:
+      name: "log-satra-{env}"
+      retention_days: 30
+
+    application_insights:
+      name: "appi-satra-{env}"
+      application_type: "web"
+
+  # ---------------------------------------------------------------------------
+  # NETWORKING
+  # ---------------------------------------------------------------------------
+  networking:
+    vnet:
+      name: "vnet-satra-{env}"
+      address_space: "10.0.0.0/16"
+      subnets:
+        - name: "snet-container-apps"
+          address_prefix: "10.0.0.0/23"
+          delegation: "Microsoft.App/environments"
+        - name: "snet-private-endpoints"
+          address_prefix: "10.0.2.0/24"
+
+    private_endpoints:
+      - name: "pe-psql-satra-{env}"
+        resource: "postgresql"
+        subnet: "snet-private-endpoints"
+        note: "Private endpoint for PostgreSQL (production only)"
+
+    dns_zones:
+      - "satra.app"
+      - "api.satra.app"
+
+  # ---------------------------------------------------------------------------
+  # CI/CD PIPELINE
+  # ---------------------------------------------------------------------------
+  ci_cd:
+    platform: "GitHub Actions"
+    repository: "arbgjr/satra"
+
+    workflows:
+      - name: "CI - Build and Test"
+        trigger:
+          - "push to main"
+          - "pull_request to main"
+        jobs:
+          - name: "build-api"
+            runs_on: "ubuntu-latest"
+            steps:
+              - "Checkout"
+              - "Setup .NET 8"
+              - "Restore dependencies"
+              - "Build"
+              - "Run unit tests"
+              - "Upload coverage"
+
+          - name: "build-web"
+            runs_on: "ubuntu-latest"
+            steps:
+              - "Checkout"
+              - "Setup Node 20"
+              - "Install dependencies"
+              - "Lint"
+              - "Build"
+              - "Run tests"
+
+          - name: "security-scan"
+            runs_on: "ubuntu-latest"
+            steps:
+              - "Checkout"
+              - "Run Dependabot"
+              - "Run CodeQL"
+              - "Run Trivy on Dockerfiles"
+
+      - name: "CD - Deploy to Staging"
+        trigger:
+          - "push to main"
+          - "requires CI success"
+        jobs:
+          - name: "build-and-push-images"
+            steps:
+              - "Build Docker images"
+              - "Push to GHCR"
+              - "Tag as 'staging'"
+
+          - name: "deploy-staging"
+            needs: "build-and-push-images"
+            steps:
+              - "Login to Azure"
+              - "Deploy Container Apps (staging)"
+              - "Run smoke tests"
+              - "Notify on Slack"
+
+          - name: "e2e-tests"
+            needs: "deploy-staging"
+            steps:
+              - "Setup Playwright"
+              - "Run E2E tests against staging"
+              - "Upload test results"
+
+      - name: "CD - Deploy to Production"
+        trigger:
+          - "manual (workflow_dispatch)"
+          - "release tag (v*)"
+        jobs:
+          - name: "pre-deploy-checks"
+            steps:
+              - "Verify staging is green"
+              - "Check for breaking changes"
+              - "Notify team"
+
+          - name: "deploy-production"
+            needs: "pre-deploy-checks"
+            environment: "production"
+            steps:
+              - "Login to Azure"
+              - "Deploy Container Apps (production)"
+              - "Run smoke tests"
+              - "Verify health endpoints"
+
+          - name: "post-deploy"
+            needs: "deploy-production"
+            steps:
+              - "Create GitHub release"
+              - "Update changelog"
+              - "Notify on Slack"
+
+    branch_protection:
+      main:
+        required_reviews: 1
+        required_checks:
+          - "build-api"
+          - "build-web"
+          - "security-scan"
+        dismiss_stale_reviews: true
+        require_linear_history: true
+
+  # ---------------------------------------------------------------------------
+  # DOCKER IMAGES
+  # ---------------------------------------------------------------------------
+  docker:
+    registry: "ghcr.io/arbgjr/satra"
+
+    images:
+      - name: "api"
+        dockerfile: "src/Satra.Api/Dockerfile"
+        base_image: "mcr.microsoft.com/dotnet/aspnet:8.0-alpine"
+        build_args:
+          - "CONFIGURATION=Release"
+        ports: [8080]
+        healthcheck:
+          path: "/health"
+          interval: 30s
+          timeout: 10s
+          retries: 3
+
+      - name: "worker"
+        dockerfile: "src/Satra.Worker/Dockerfile"
+        base_image: "mcr.microsoft.com/dotnet/runtime:8.0-alpine"
+        ports: []
+
+      - name: "notifier"
+        dockerfile: "src/Satra.Notifier/Dockerfile"
+        base_image: "mcr.microsoft.com/dotnet/runtime:8.0-alpine"
+        ports: []
+
+      - name: "web"
+        dockerfile: "src/Satra.Web/Dockerfile"
+        base_image: "node:20-alpine"
+        build_args:
+          - "NEXT_PUBLIC_API_URL"
+        ports: [3000]
+
+    compose:
+      file: "docker-compose.yml"
+      services:
+        - "api"
+        - "worker"
+        - "notifier"
+        - "web"
+      depends_on:
+        - "PostgreSQL (shared)"
+        - "Redis (shared)"
+
+  # ---------------------------------------------------------------------------
+  # MONITORING & OBSERVABILITY
+  # ---------------------------------------------------------------------------
+  observability:
+    logging:
+      provider: "Azure Log Analytics + Loki"
+      format: "JSON structured"
+      retention: "30 days"
+      alerts:
+        - name: "Error rate spike"
+          condition: "error count > 10 in 5 min"
+          severity: "warning"
+        - name: "Critical errors"
+          condition: "any error with level = critical"
+          severity: "critical"
+
+    metrics:
+      provider: "Prometheus + Azure Monitor"
+      scrape_interval: "15s"
+      dashboards:
+        - "API Performance"
+        - "Worker Health"
+        - "Alert Processing"
+        - "Business Metrics (alertas/dia, usuarios ativos)"
+      alerts:
+        - name: "High latency"
+          condition: "p95 latency > 500ms for 5 min"
+          severity: "warning"
+        - name: "Low cache hit ratio"
+          condition: "cache hit ratio < 70% for 10 min"
+          severity: "warning"
+
+    tracing:
+      provider: "Azure Application Insights"
+      sampling: "10%"
+      correlation: "W3C Trace Context"
+
+    uptime_monitoring:
+      provider: "UptimeRobot or Azure Monitor"
+      checks:
+        - url: "https://api.satra.app/health"
+          interval: "1 min"
+          alert: "sre@satra.app"
+        - url: "https://satra.app"
+          interval: "1 min"
+          alert: "sre@satra.app"
+
+  # ---------------------------------------------------------------------------
+  # BACKUP & DISASTER RECOVERY
+  # ---------------------------------------------------------------------------
+  backup:
+    postgresql:
+      type: "Azure automated backup"
+      retention: "7 days (staging), 30 days (production)"
+      geo_redundant: "false (staging), true (production)"
+      point_in_time_restore: "enabled"
+      test_restore: "monthly"
+
+    redis:
+      type: "RDB snapshots"
+      frequency: "daily"
+      retention: "3 days"
+      note: "Cache can be rebuilt from source"
+
+    blob_storage:
+      type: "LRS (staging), GRS (production)"
+      soft_delete: "7 days"
+
+  disaster_recovery:
+    rto: "4 hours"
+    rpo: "1 hour"
+    strategy: |
+      1. Database: Point-in-time restore from Azure backup
+      2. Containers: Redeploy from GHCR
+      3. Secrets: Restore from Key Vault
+      4. DNS: Update to new deployment
+
+    runbook: "docs/operations/disaster-recovery.md"
+
+  # ---------------------------------------------------------------------------
+  # SECURITY
+  # ---------------------------------------------------------------------------
+  security:
+    network:
+      - "HTTPS only (TLS 1.3)"
+      - "WAF via Azure Front Door or Cloudflare"
+      - "Private endpoints for database (production)"
+
+    access:
+      - "Azure AD for admin access"
+      - "RBAC for resource access"
+      - "Just-in-time access for production"
+
+    secrets:
+      - "All secrets in Azure Key Vault"
+      - "Managed identities for secret access"
+      - "Secret rotation via Key Vault"
+
+    compliance:
+      - "LGPD data residency (Brazil South)"
+      - "Encryption at rest and in transit"
+      - "Audit logging enabled"
+
+  # ---------------------------------------------------------------------------
+  # COST OPTIMIZATION
+  # ---------------------------------------------------------------------------
+  cost_optimization:
+    strategies:
+      - name: "Burstable VMs"
+        description: "Use B-series for database (cost-effective for variable workloads)"
+        savings: "~40% vs General Purpose"
+
+      - name: "Scale to zero"
+        description: "Container Apps scale to 0 replicas during low traffic"
+        savings: "~60% during off-hours"
+
+      - name: "Reserved instances"
+        description: "1-year reservation for database when traffic stabilizes"
+        savings: "~30%"
+
+      - name: "Log retention tuning"
+        description: "30 days for non-critical logs"
+        savings: "~20% on storage"
+
+    estimated_monthly_cost:
+      staging: "$50-70"
+      production_mvp: "$100-150"
+      production_growth: "$200-400"
+
+  # ---------------------------------------------------------------------------
+  # TERRAFORM STRUCTURE
+  # ---------------------------------------------------------------------------
+  terraform:
+    version: ">= 1.5"
+    backend: "azurerm"
+    state_storage: "stsatrainfra"
+    state_container: "tfstate"
+
+    directory_structure: |
+      terraform/
+      ├── environments/
+      │   ├── staging/
+      │   │   ├── main.tf
+      │   │   ├── variables.tf
+      │   │   └── terraform.tfvars
+      │   └── production/
+      │       ├── main.tf
+      │       ├── variables.tf
+      │       └── terraform.tfvars
+      ├── modules/
+      │   ├── container_apps/
+      │   ├── postgresql/
+      │   ├── redis/
+      │   ├── key_vault/
+      │   └── networking/
+      └── shared/
+          └── resource_group/
+
+    modules:
+      - name: "container_apps"
+        description: "Azure Container Apps environment and apps"
+        inputs: ["environment_name", "apps_config"]
+        outputs: ["app_urls", "app_identities"]
+
+      - name: "postgresql"
+        description: "Azure Database for PostgreSQL Flexible Server"
+        inputs: ["name", "sku", "storage_size"]
+        outputs: ["connection_string", "fqdn"]
+
+      - name: "redis"
+        description: "Azure Cache for Redis"
+        inputs: ["name", "sku", "capacity"]
+        outputs: ["connection_string", "hostname"]
+
+  # ---------------------------------------------------------------------------
+  # RELATED DECISIONS
+  # ---------------------------------------------------------------------------
+  related_adrs:
+    - adr-004  # Arquitetura modular
+    - adr-005  # .NET 8
+    - adr-007  # PostgreSQL
+    - adr-008  # Redis
+    - adr-010  # Azure as cloud provider
