@@ -1,0 +1,165 @@
+research_brief:
+  topic: "Métricas de Volatilidade para Sistema de Alertas B3"
+  date: "2026-01-17"
+  researcher: "domain-researcher"
+  project_id: "proj-75602fb4"
+
+  executive_summary: |
+    Análise de 6 métricas de volatilidade para sistema de alertas em tempo real
+    da B3. ATR e Desvio Padrão Histórico são ideais para tier gratuito (simples,
+    dados disponíveis em APIs gratuitas, baixo custo computacional). Bollinger
+    Bands e Beta recomendados para tier premium (insights sofisticados, análise
+    comparativa). Volatilidade Implícita é inviável para free tier (requer dados
+    pagos de opções).
+
+  key_findings:
+    - finding: "ATR é a métrica ideal para tier gratuito - simples, acionável, dados gratuitos"
+      confidence: high
+      sources:
+        - title: "The Average True Range Indicator and Volatility"
+          url: "https://www.schwab.com/learn/story/average-true-range-indicator-and-volatility"
+          type: "authoritative"
+
+    - finding: "Alpha Vantage fornece ATR e Bollinger Bands pré-calculados em free tier"
+      confidence: high
+      sources:
+        - title: "Free Stock APIs in JSON & Excel | Alpha Vantage"
+          url: "https://www.alphavantage.co/"
+          type: "official"
+
+    - finding: "Bollinger Squeeze é estratégia comprovada - volatilidade baixa antecede movimentos fortes"
+      confidence: high
+      sources:
+        - title: "Bollinger Band Squeeze"
+          url: "https://chartschool.stockcharts.com/table-of-contents/trading-strategies-and-models/trading-strategies/bollinger-band-squeeze"
+          type: "reference"
+
+    - finding: "B3 disponibiliza dados oficiais de Desvio Padrão publicamente"
+      confidence: high
+      sources:
+        - title: "Desvio-Padrão | B3"
+          url: "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/consultas/mercado-a-vista/volatilidades-dos-ativos/desvio-padrao/"
+          type: "official"
+
+    - finding: "Volatilidade Implícita requer dados de opções (não disponível em free APIs)"
+      confidence: high
+      sources:
+        - title: "Compreendendo volatilidade implícita no mercado de opções"
+          url: "https://opcoespro.com.br/blog/entendendo-a-volatilidade-implicita-no-mercado-de-opcoes"
+          type: "educational"
+
+    - finding: "ATR + Bollinger Bands combinados são estratégia profissional em 2026"
+      confidence: high
+      sources:
+        - title: "ATR vs Bollinger Bands: Unlocking the Secrets of Market Volatility"
+          url: "https://algogene.com/community/post/310"
+          type: "comparative_analysis"
+
+  best_practices:
+    - practice: "Usar ATR(14) como padrão - período recomendado por Wilder"
+      rationale: "Equilibra sensibilidade e suavização, amplamente testado desde 1978"
+      source: "Average True Range (ATR) - Fidelity"
+
+    - practice: "Combinar múltiplos indicadores (ATR + Bollinger) para confirmação"
+      rationale: "Reduz falsos sinais, aumenta probabilidade de sucesso"
+      source: "Volatility Analysis: Combining Bollinger Bands and ATR - Traders Log"
+
+    - practice: "Normalizar ATR como percentual do preço (ATRP) para comparação entre ativos"
+      rationale: "ATR absoluto dificulta comparação entre PETR4 (R$40) e MGLU3 (R$5)"
+      source: "Average True Range Percent (ATRP) - StockCharts"
+
+    - practice: "Validar cálculos contra dados oficiais da B3"
+      rationale: "Garante precisão e confiabilidade dos alertas"
+      source: "B3 - Desvio Padrão oficial"
+
+    - practice: "Usar TimescaleDB para armazenamento de séries temporais"
+      rationale: "Otimizado para time-series, compressão nativa, queries rápidas"
+      source: "Industry best practice para financial data"
+
+  anti_patterns:
+    - pattern: "Calcular Volatilidade Implícita sem dados de opções líquidas"
+      reason: "Modelos como Black-Scholes requerem preços de opções confiáveis"
+      alternative: "Usar ATR ou Desvio Padrão Histórico para ativos sem opções"
+
+    - pattern: "Usar Beta para alertas de volatilidade intraday"
+      reason: "Beta mede risco relativo ao mercado, não volatilidade absoluta intraday"
+      alternative: "ATR ou Bollinger Bands para day trading, Beta para swing trading"
+
+    - pattern: "Depender de uma única métrica de volatilidade"
+      reason: "Cada métrica tem limitações, múltiplos indicadores fornecem confirmação"
+      alternative: "Estratégia multi-indicador: ATR + Bollinger + Desvio Padrão"
+
+    - pattern: "Usar dados de APIs gratuitas como 'tempo real' sem verificar delay"
+      reason: "Maioria das APIs gratuitas tem delay de 15-20 minutos"
+      alternative: "Documentar claramente delay, considerar API paga para real-time"
+
+  relevant_technologies:
+    - name: "Alpha Vantage API"
+      purpose: "Fonte de dados gratuita com ATR e Bollinger pré-calculados"
+      maturity: "mature"
+      free_tier_limits: "5 calls/min, 500 calls/dia"
+
+    - name: "BrAPI"
+      purpose: "API brasileira especializada em dados da B3"
+      maturity: "emerging"
+      notes: "Boa para protótipo, verificar rate limits atuais"
+
+    - name: "TimescaleDB"
+      purpose: "Banco de dados otimizado para séries temporais financeiras"
+      maturity: "mature"
+      benefits: "Compressão nativa, continuous aggregates, tempo queries"
+
+    - name: "Redis"
+      purpose: "Cache de volatilidade calculada em tempo real"
+      maturity: "mature"
+      usage: "TTL 60s para dados intraday, reduz recálculos"
+
+    - name: "Black-Scholes Model"
+      purpose: "Cálculo de Volatilidade Implícita (premium tier futuro)"
+      maturity: "mature"
+      complexity: "high - solver numérico iterativo"
+
+  academic_references:
+    - title: "Avaliando a Volatilidade Diária dos Ativos"
+      arxiv_id: "N/A (Banco Central do Brasil Working Paper)"
+      url: "https://www.bcb.gov.br/pec/wps/port/wps297.pdf"
+      relevance: "Métodos de cálculo de volatilidade para mercado brasileiro"
+
+  knowledge_gaps:
+    - "Latência real das APIs gratuitas para dados B3 em 2026"
+    - "Rate limits práticos do Alpha Vantage para 50+ símbolos B3"
+    - "Custo de dados de opções da B3 para volatilidade implícita"
+    - "Thresholds ideais de Bollinger Squeeze para mercado brasileiro"
+
+  recommendations:
+    priority_1:
+      - "Implementar ATR(14) como métrica core do tier gratuito"
+      - "Testar Alpha Vantage API com símbolos B3 (.SAO suffix)"
+      - "Validar cálculos contra dados oficiais B3"
+
+    priority_2:
+      - "Adicionar Desvio Padrão Histórico (30 dias) ao tier gratuito"
+      - "Implementar Bollinger Bands para tier premium"
+      - "Projetar schema TimescaleDB para time-series"
+
+    priority_3:
+      - "Adicionar Beta vs Ibovespa ao tier premium"
+      - "Implementar detector de Bollinger Squeeze"
+      - "Criar alertas multi-indicador para premium"
+
+    future_considerations:
+      - "Volatilidade Implícita (requer API paga de opções)"
+      - "Integração com dados oficiais B3 (versão enterprise)"
+
+  tags:
+    - "volatility"
+    - "B3"
+    - "trading"
+    - "ATR"
+    - "Bollinger Bands"
+    - "financial-metrics"
+    - "day-trading"
+    - "market-data"
+
+  related_decisions: []
+  related_learnings: []
