@@ -1,0 +1,405 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "version": "1.0",
+  "project": {
+    "name": "mice_dolphins",
+    "description": "SDLC Agentico - Sistema de desenvolvimento de software orientado por agentes"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write(.agentic_sdlc/**/*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/ensure-feature-branch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(src/**/*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/ensure-feature-branch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(src/**/*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/ensure-feature-branch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/validate-commit.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/update-project-timestamp.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git push*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-gate.sh auto"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit(*.py)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "black \"$TOOL_INPUT_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.py)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "black \"$TOOL_INPUT_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(docs/adr/*.md)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'ADR atualizado - lembre de atualizar o index'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.spec.md)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Spec criada - considere usar /auto-branch feature'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(src/**/*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/detect-adr-need.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(infrastructure/**/*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/detect-adr-need.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(**/docker-compose*.yml)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/detect-adr-need.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/detect-phase.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/query-phase-learnings.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-migrate.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/detect-documents.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "agents": {
+    "default_model": "sonnet",
+    "orchestrator_model": "opus",
+    "available_agents": [
+      "orchestrator",
+      "alignment-agent",
+      "intake-analyst",
+      "compliance-guardian",
+      "domain-researcher",
+      "doc-crawler",
+      "rag-curator",
+      "product-owner",
+      "requirements-analyst",
+      "ux-writer",
+      "system-architect",
+      "adr-author",
+      "data-architect",
+      "threat-modeler",
+      "delivery-planner",
+      "code-author",
+      "code-reviewer",
+      "test-author",
+      "qa-analyst",
+      "security-scanner",
+      "performance-analyst",
+      "release-manager",
+      "cicd-engineer",
+      "change-manager",
+      "incident-commander",
+      "rca-analyst",
+      "metrics-analyst",
+      "observability-engineer",
+      "playbook-governance",
+      "iac-engineer",
+      "doc-generator"
+    ]
+  },
+  "skills": {
+    "available_skills": [
+      "gate-evaluator",
+      "memory-manager",
+      "rag-query",
+      "spec-kit-integration",
+      "bmad-integration",
+      "auto-branch",
+      "iac-generator",
+      "doc-blueprint",
+      "reference-indexer",
+      "system-design-decision-engine",
+      "phase-commit",
+      "session-analyzer",
+      "document-processor",
+      "frontend-testing",
+      "decay-scoring",
+      "github-sync",
+      "github-projects",
+      "github-wiki",
+      "alignment-workflow"
+    ]
+  },
+  "sdlc": {
+    "phases": [
+      {
+        "number": 0,
+        "name": "Preparation",
+        "agents": [
+          "intake-analyst",
+          "compliance-guardian"
+        ]
+      },
+      {
+        "number": 1,
+        "name": "Discovery",
+        "agents": [
+          "domain-researcher",
+          "doc-crawler",
+          "rag-curator"
+        ]
+      },
+      {
+        "number": 2,
+        "name": "Requirements",
+        "agents": [
+          "product-owner",
+          "requirements-analyst",
+          "ux-writer"
+        ]
+      },
+      {
+        "number": 3,
+        "name": "Architecture",
+        "agents": [
+          "system-architect",
+          "adr-author",
+          "data-architect",
+          "threat-modeler",
+          "iac-engineer"
+        ]
+      },
+      {
+        "number": 4,
+        "name": "Planning",
+        "agents": [
+          "delivery-planner"
+        ]
+      },
+      {
+        "number": 5,
+        "name": "Implementation",
+        "agents": [
+          "code-author",
+          "code-reviewer",
+          "test-author",
+          "iac-engineer"
+        ]
+      },
+      {
+        "number": 6,
+        "name": "Quality",
+        "agents": [
+          "qa-analyst",
+          "security-scanner",
+          "performance-analyst"
+        ]
+      },
+      {
+        "number": 7,
+        "name": "Release",
+        "agents": [
+          "release-manager",
+          "cicd-engineer",
+          "change-manager",
+          "doc-generator"
+        ]
+      },
+      {
+        "number": 8,
+        "name": "Operations",
+        "agents": [
+          "incident-commander",
+          "rca-analyst",
+          "metrics-analyst",
+          "observability-engineer"
+        ]
+      }
+    ],
+    "gates": {
+      "directory": ".claude/skills/gate-evaluator/gates",
+      "enforce": true,
+      "security_gate": "security-gate.yml"
+    },
+    "complexity_levels": {
+      "0": {
+        "name": "Quick Flow",
+        "description": "Bug fix, typo, small change",
+        "command": "/quick-fix",
+        "phases": [
+          5,
+          6
+        ],
+        "time_estimate": "~5 min",
+        "auto_branch": true,
+        "branch_prefix": "fix/"
+      },
+      "1": {
+        "name": "Feature",
+        "description": "Feature in existing service",
+        "command": "/new-feature",
+        "phases": [
+          2,
+          5,
+          6
+        ],
+        "time_estimate": "~15-30 min",
+        "auto_branch": true,
+        "branch_prefix": "feature/"
+      },
+      "2": {
+        "name": "BMAD Method",
+        "description": "New product or service",
+        "command": "/sdlc-start",
+        "phases": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "time_estimate": "~30 min - hours",
+        "auto_branch": true,
+        "branch_prefix": "feature/"
+      },
+      "3": {
+        "name": "Enterprise",
+        "description": "Compliance, multi-team, critical",
+        "command": "/sdlc-start",
+        "phases": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time_estimate": "variable",
+        "human_approval_at_all_gates": true,
+        "auto_branch": true,
+        "branch_prefix": "feature/"
+      }
+    },
+    "security_by_design": {
+      "enabled": true,
+      "mandatory_gates": [
+        "phase-2-to-3",
+        "phase-3-to-4",
+        "phase-5-to-6",
+        "phase-6-to-7"
+      ],
+      "escalation_triggers": {
+        "cvss_threshold": 7.0,
+        "pii_exposure": true,
+        "auth_modification": true,
+        "crypto_change": true,
+        "new_public_endpoint": true
+      }
+    }
+  },
+  "integrations": {
+    "github": {
+      "copilot_coding_agent": true,
+      "create_issues": true,
+      "create_prs": true
+    },
+    "spec_kit": {
+      "enabled": true,
+      "templates_dir": ".specify/templates",
+      "auto_branch_on_spec_create": true
+    }
+  },
+  "memory": {
+    "directory": ".agentic_sdlc",
+    "legacy_directory": ".claude/memory",
+    "projects_dir": "projects",
+    "references_dir": "references",
+    "templates_dir": "templates",
+    "corpus_dir": "corpus",
+    "sessions_dir": "sessions",
+    "persist_decisions": true,
+    "persist_learnings": true,
+    "auto_migrate": true
+  }
+}
