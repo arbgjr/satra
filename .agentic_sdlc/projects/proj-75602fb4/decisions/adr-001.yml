@@ -1,0 +1,66 @@
+decision:
+  id: adr-001
+  type: technical
+  title: "Usar Alpha Vantage API como fonte de dados de mercado"
+  created_at: '2026-01-17T03:50:00Z'
+  status: accepted
+
+  context: |
+    O sistema precisa de dados de mercado da B3 para calcular métricas de volatilidade.
+    A decisão foi usar um serviço de free tier para o MVP.
+
+    Opções avaliadas:
+    - API direta da B3 (B3 Market Data) - paga, complexa para MVP
+    - Provedores terceiros (Bloomberg, Refinitiv) - muito caros
+    - Alpha Vantage API - free tier com 500 calls/dia
+    - Yahoo Finance API - não oficial, instável
+
+  decision: |
+    Usar Alpha Vantage API como fonte de dados de mercado da B3 para o MVP.
+
+    Detalhes:
+    - Free tier: 500 calls/dia, 5 calls/min
+    - Cobertura B3: símbolos com sufixo .SAO (ex: PETR4.SAO)
+    - ATR e Bollinger Bands pré-calculados
+    - Dados históricos e intraday disponíveis
+    - Documentação completa e suporte ativo
+
+  consequences:
+    positive:
+      - "Custo zero para MVP e early adopters"
+      - "ATR e Bollinger Bands já calculados (menor complexidade)"
+      - "Documentação oficial completa"
+      - "Cobertura adequada de ativos da B3"
+      - "API estável e bem mantida"
+
+    negative:
+      - "Rate limit de 5 calls/min pode ser restritivo para escala"
+      - "Free tier limitado a 500 calls/dia"
+      - "Dependência de serviço terceiro"
+      - "Dados podem ter delay de 15-20 minutos (não real-time para free tier)"
+
+    risks:
+      - "Alpha Vantage pode descontinuar free tier"
+      - "Rate limits podem não escalar para muitos usuários"
+      - "Qualidade de dados pode variar"
+
+    mitigations:
+      - "Implementar cache local com Redis para reduzir calls"
+      - "Planejar migração para API paga se atingir limites"
+      - "Considerar híbrido: Alpha Vantage + scraping B3 como fallback"
+
+  related_decisions: []
+  phase: 0
+  author: claude
+  approvers:
+    - arbgjr
+
+  metadata:
+    complexity: low
+    reversible: true
+    cost_impact: "zero para MVP, ~$50-200/mês se migrar para tier pago"
+    tags:
+      - data-source
+      - api
+      - free-tier
+      - b3

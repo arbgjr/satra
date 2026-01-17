@@ -1,0 +1,94 @@
+decision:
+  id: adr-008
+  type: technical
+  title: "Redis 7 para cache, sessoes e filas"
+  created_at: '2026-01-17T15:56:28Z'
+  status: accepted
+
+  context: |
+    O sistema precisa de:
+    - Cache para dados de mercado (TTL 60s-24h)
+    - Cache para metricas calculadas
+    - Armazenamento de sessoes de usuario
+    - Rate limiting para APIs
+    - Filas de mensagens para eventos (alertas, notificacoes)
+
+    Requisitos:
+    - Latencia < 10ms para cache hits
+    - Suporte a TTL
+    - Estruturas de dados versateis
+    - Simplicidade operacional
+
+  decision: |
+    Usar Redis 7 para cache, sessoes e filas de mensagens:
+
+    - Shared Infrastructure (~/.local/services/)
+    - Redis Streams para message queues
+    - Diferentes TTLs por tipo de dado
+    - Redis Sentinel para HA em producao
+
+    Use cases:
+    - STRING: cache de JSON (OHLC, metricas)
+    - HASH: sessoes de usuario
+    - SORTED SET: rate limiting sliding window
+    - STREAM: filas de eventos
+
+    TTL Policy:
+    - OHLC intraday: 60 segundos
+    - OHLC diario: 24 horas
+    - Metricas calculadas: 60 segundos
+    - Sessoes: 7 dias
+
+  consequences:
+    positive:
+      - "Performance excepcional (<1ms latency)"
+      - "Versatil: cache, sessoes, filas em um unico servico"
+      - "Redis Streams para event-driven communication"
+      - "Operacionalmente simples"
+      - "Ja existe na shared infrastructure"
+      - "Managed offerings em todos os clouds"
+
+    negative:
+      - "Single point of failure sem Sentinel/Cluster"
+      - "Dados perdidos se restart sem persistencia"
+      - "Memory-bound (custo aumenta com tamanho)"
+
+    risks:
+      - risk: "Perda de dados de cache em restart"
+        probability: medium
+        mitigation: |
+          Dados de cache sao regeneraveis (busca do banco).
+          Habilitar AOF persistence para filas criticas.
+
+      - risk: "Memory exhaustion"
+        probability: low
+        mitigation: |
+          Monitorar uso de memoria.
+          TTLs garantem limpeza automatica.
+          Eviction policy LRU.
+
+  alternatives:
+    - name: "Memcached"
+      description: "Cache puro"
+      rejected_because: |
+        - Nao tem filas de mensagens
+        - Menos estruturas de dados
+        - Redis mais versatil
+
+    - name: "Redis + RabbitMQ separado"
+      description: "Message broker dedicado"
+      rejected_because: |
+        - Complexidade adicional de infraestrutura
+        - Redis Streams suficiente para MVP
+
+  phase: 2
+  author: system-architect
+  approvers: []
+
+  metadata:
+    complexity: low
+    reversible: false
+    cost_impact: "~$15/mes para managed service (Basic)"
+    performance_impact: "Positivo - latencia <1ms"
+
+  supersedes: null

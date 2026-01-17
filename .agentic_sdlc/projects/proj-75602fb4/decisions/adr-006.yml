@@ -1,0 +1,79 @@
+decision:
+  id: adr-006
+  type: technical
+  title: "Next.js 14 com React para frontend PWA"
+  created_at: '2026-01-17T15:55:03Z'
+  status: accepted
+
+  context: |
+    O frontend do Sistema de Alertas B3 precisa de:
+    - PWA instalavel em mobile e desktop
+    - Push notifications via Web Push API
+    - Dashboard responsivo com graficos
+    - SEO para paginas publicas
+    - Performance (Core Web Vitals)
+
+  decision: |
+    Usar Next.js 14 com App Router como framework frontend:
+
+    - React 18 com Server Components
+    - TypeScript para type safety
+    - Tailwind CSS + shadcn/ui para styling
+    - TanStack Query para server state
+    - React Hook Form + Zod para formularios
+    - Recharts para graficos de volatilidade
+    - next-pwa para PWA capabilities
+
+    Deploy como static export ou Node.js server (SSR opcional).
+
+  consequences:
+    positive:
+      - "SSR opcional para SEO em paginas publicas"
+      - "Server Components reduzem bundle size"
+      - "App Router moderno e flexivel"
+      - "Excelente DX (Fast Refresh, type checking)"
+      - "PWA nativo com next-pwa"
+      - "Ecossistema React maduro"
+
+    negative:
+      - "Framework mais complexo que SPA puro"
+      - "Build time maior com muitas paginas"
+      - "Debugging de Server Components ainda novo"
+
+    risks:
+      - risk: "Complexidade do App Router para time"
+        probability: low
+        mitigation: "Documentacao excelente, patterns bem estabelecidos"
+
+  alternatives:
+    - name: "Vite + React SPA"
+      description: "SPA puro sem SSR"
+      rejected_because: |
+        - Sem SSR para SEO
+        - PWA setup mais manual
+        - Menos otimizacoes out-of-the-box
+
+    - name: "Vue.js + Nuxt"
+      description: "Alternativa ao React"
+      rejected_because: |
+        - Menos familiar para o time
+        - Ecossistema de componentes menor
+
+    - name: "Angular"
+      description: "Framework completo"
+      rejected_because: |
+        - Overhead alto para MVP
+        - Curva de aprendizado maior
+        - Bundle size maior
+
+  phase: 2
+  author: system-architect
+  approvers: []
+
+  metadata:
+    complexity: medium
+    reversible: true
+    cost_impact: "Neutro"
+    performance_impact: "Positivo - SSR e otimizacoes nativas"
+
+  supersedes: null

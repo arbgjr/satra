@@ -1,0 +1,88 @@
+decision:
+  id: adr-003
+  type: technical
+  title: "Priorização de métricas: ATR → Desvio Padrão → Bollinger Bands → Beta"
+  created_at: '2026-01-17T03:50:00Z'
+  status: accepted
+
+  context: |
+    Após domain research sobre métricas de volatilidade, é necessário priorizar
+    quais implementar primeiro considerando:
+    - Facilidade de cálculo com dados gratuitos
+    - Utilidade para usuários (day traders, swing traders)
+    - Custo computacional
+    - Interpretabilidade
+
+    Research completo em:
+    .agentic_sdlc/projects/proj-75602fb4/research/volatility-metrics-research.yml
+
+  decision: |
+    Implementar métricas de volatilidade na seguinte ordem:
+
+    Prioridade 1 - ATR (Average True Range, 14 períodos):
+    - Estimativa: 2-3 dias
+    - Disponível pré-calculado no Alpha Vantage
+    - Valor absoluto em R$ (fácil de interpretar)
+    - Útil para definir stop-loss
+
+    Prioridade 2 - Desvio Padrão Histórico (30 dias):
+    - Estimativa: 1-2 dias
+    - Cálculo simples com dados OHLC
+    - Permite comparação entre ativos
+    - Percentil histórico ("volatilidade no percentil 85%")
+
+    Prioridade 3 - Bollinger Bands (20, 2):
+    - Estimativa: 3-4 dias
+    - Disponível pré-calculado no Alpha Vantage
+    - Detecção de squeeze (contração antes de movimento forte)
+    - Feature diferenciadora para tier premium
+
+    Prioridade 4 - Beta vs Ibovespa:
+    - Estimativa: 2-3 dias
+    - Contextualiza risco relativo ao mercado
+    - Útil para diversificação de carteira
+    - Feature premium
+
+  consequences:
+    positive:
+      - "MVP com ATR + Desvio Padrão pode ser lançado em 1 semana"
+      - "Roadmap claro para features premium"
+      - "Priorização baseada em pesquisa de domínio"
+      - "Cada métrica agrega valor incremental"
+      - "Alpha Vantage fornece ATR e Bollinger pré-calculados (reduz complexidade)"
+
+    negative:
+      - "Volatilidade Implícita (feature avançada) fica para fase futura"
+      - "Não teremos todas as métricas no lançamento"
+      - "Concorrentes podem ter mais indicadores inicialmente"
+
+    risks:
+      - "Usuários podem demandar volatilidade implícita (requer dados de opções caros)"
+      - "Cálculos custom podem divergir de outras plataformas"
+
+    mitigations:
+      - "Validar cálculos contra dados oficiais da B3"
+      - "Documentar fórmulas usadas para transparência"
+      - "Coletar feedback de usuários sobre métricas mais úteis"
+      - "Manter volatilidade implícita no backlog para avaliação futura"
+
+  related_decisions:
+    - adr-001
+    - adr-002
+
+  phase: 0
+  author: claude
+  approvers:
+    - arbgjr
+
+  metadata:
+    complexity: medium
+    reversible: true
+    cost_impact: "define escopo e timeline de implementação"
+    tags:
+      - volatility
+      - metrics
+      - prioritization
+      - atr
+      - bollinger-bands
+      - beta

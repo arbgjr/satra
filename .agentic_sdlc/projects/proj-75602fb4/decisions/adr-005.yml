@@ -1,0 +1,85 @@
+decision:
+  id: adr-005
+  type: technical
+  title: ".NET 8 como plataforma de backend"
+  created_at: '2026-01-17T15:54:22Z'
+  status: accepted
+
+  context: |
+    O backend do Sistema de Alertas B3 precisa de:
+    - Alta performance para processamento em near-real-time
+    - Excelente suporte a async/await para I/O-bound workloads
+    - Background workers para ingestao e processamento
+    - Ecossistema maduro para integracao com APIs externas
+    - Facilidade de deploy em containers
+
+    Equipe tem experiencia com .NET e Python.
+
+  decision: |
+    Usar .NET 8 (LTS) como plataforma de backend com:
+
+    - ASP.NET Core para API REST
+    - Worker Services para background jobs
+    - Entity Framework Core para acesso a dados
+    - Polly para resiliencia (retry, circuit breaker)
+    - Serilog para logging estruturado
+
+    Frameworks e bibliotecas principais:
+    - FluentValidation para validacao
+    - Mapster para mapeamento DTO
+    - Hangfire para job scheduling
+    - Prometheus.NET para metricas
+
+  consequences:
+    positive:
+      - "Performance excelente (benchmarks top 5 em TechEmpower)"
+      - "LTS ate 2026, suporte de longo prazo"
+      - "Ecossistema maduro (NuGet, tooling excelente)"
+      - "Worker Services nativos para background processing"
+      - "Hot reload para desenvolvimento rapido"
+      - "Containers otimizados (alpine images pequenas)"
+      - "Interoperabilidade com shared infrastructure (.NET comum)"
+
+    negative:
+      - "Curva de aprendizado maior que Node.js/Python"
+      - "Tempo de build maior que linguagens interpretadas"
+      - "Menos bibliotecas para data science que Python"
+
+    risks:
+      - risk: "Dificuldade de contratar desenvolvedores .NET"
+        probability: low
+        mitigation: "Mercado .NET e ativo, .NET 8 e moderno e atrativo"
+
+  alternatives:
+    - name: "Python (FastAPI)"
+      description: "Framework async moderno para APIs"
+      rejected_because: |
+        - Performance inferior para I/O-bound em escala
+        - GIL limita paralelismo
+        - Ecossistema de background jobs menos maduro
+
+    - name: "Node.js (NestJS)"
+      description: "Framework TypeScript para backend"
+      rejected_because: |
+        - Single-threaded, workers mais complexos
+        - Performance inferior em CPU-bound tasks
+        - Menos familiar para o time
+
+    - name: "Go"
+      description: "Linguagem compilada, otima para APIs"
+      rejected_because: |
+        - Curva de aprendizado alta
+        - Ecossistema menos maduro
+        - Menos produtivo para MVP rapido
+
+  phase: 2
+  author: system-architect
+  approvers: []
+
+  metadata:
+    complexity: medium
+    reversible: false
+    cost_impact: "Neutro - linguagem nao afeta custo significativamente"
+    performance_impact: "Positivo - performance excelente"
+
+  supersedes: null

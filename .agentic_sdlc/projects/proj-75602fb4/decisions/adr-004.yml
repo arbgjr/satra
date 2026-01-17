@@ -1,0 +1,139 @@
+decision:
+  id: adr-004
+  type: architectural
+  title: "Arquitetura Event-Driven Modular Monolith para MVP"
+  created_at: '2026-01-17T15:50:14Z'
+  status: accepted
+
+  context: |
+    O Sistema de Alertas B3 precisa de uma arquitetura que:
+    - Suporte processamento em near-real-time (<30s latencia)
+    - Seja simples de operar para equipe pequena
+    - Tenha custo baixo para validar modelo freemium
+    - Permita evolucao para escala maior sem rewrite
+
+    Requisitos principais:
+    - Ingestao de dados de 100+ ativos a cada 5 minutos
+    - Avaliacao de 500-10.000 regras de alertas por ciclo
+    - Envio de notificacoes multi-canal com fallback
+    - 99% disponibilidade durante horario de pregao
+
+  decision: |
+    Adotar arquitetura Event-Driven Modular Monolith:
+
+    1. **Modular Monolith**:
+       - Codigo em um unico repositorio e deploy
+       - Modulos internos bem definidos (Auth, Users, Assets, Volatility, Alerts, etc.)
+       - Limites claros entre modulos via interfaces
+       - Comunicacao sincrona via chamadas diretas para queries
+       - Comunicacao assincrona via eventos para commands
+
+    2. **Event-Driven interno**:
+       - Redis Streams para fila de eventos
+       - Eventos: MarketDataUpdated, MetricsCalculated, AlertTriggered
+       - Workers separados para ingestao, calculo e notificacao
+       - Desacoplamento permite escalar workers independentemente
+
+    3. **Containers principais**:
+       - Web App (Next.js PWA)
+       - Backend API (.NET 8 ASP.NET Core)
+       - Background Worker (.NET 8 Worker Service)
+       - Notification Service (.NET 8 Worker Service)
+       - PostgreSQL (dados persistentes)
+       - Redis (cache + filas)
+
+    4. **Caminho de evolucao**:
+       - MVP: Single instance de cada componente
+       - Growth: Horizontal scaling de workers
+       - Enterprise: Extrair microservicos se necessario
+
+  consequences:
+    positive:
+      - "Simplicidade de deploy e operacao (1 deploy para backend)"
+      - "Custo de infraestrutura minimo (sem Kubernetes no MVP)"
+      - "Desenvolvimento rapido com refactoring facil"
+      - "Debugging simplificado (tudo no mesmo processo)"
+      - "Comunicacao event-driven permite desacoplamento"
+      - "Caminho claro para microservicos sem rewrite"
+      - "Team pequena pode operar eficientemente"
+
+    negative:
+      - "Escalabilidade limitada a vertical para API principal"
+      - "Nao permite deploy independente de modulos"
+      - "Falha em um modulo pode afetar todo o sistema"
+      - "Testes de integracao mais complexos que microservicos"
+
+    risks:
+      - risk: "Performance do monolito pode nao escalar para 10k usuarios"
+        probability: medium
+        mitigation: |
+          Arquitetura modular permite extrair servicos criticos.
+          Workers ja sao separados e podem escalar horizontalmente.
+          Read replicas do PostgreSQL para queries pesadas.
+
+      - risk: "Redis como message broker pode nao suportar alto volume"
+        probability: low
+        mitigation: |
+          Redis Streams e robusto para volume esperado no MVP.
+          Migrar para RabbitMQ ou Kafka e straightforward se necessario.
+
+      - risk: "Acoplamento entre modulos pode crescer com o tempo"
+        probability: medium
+        mitigation: |
+          Code reviews focados em manter limites de modulo.
+          Testes de contrato entre modulos.
+          Metricas de dependencia entre modulos.
+
+  alternatives:
+    - name: "Microservices desde o inicio"
+      description: |
+        Cada modulo como servico independente com seu proprio banco.
+        Kubernetes para orquestracao.
+      rejected_because: |
+        - Overhead operacional muito alto para MVP
+        - Custo de infraestrutura 3-5x maior
+        - Equipe pequena nao consegue operar
+        - Complexidade de debugging distribuido
+        - Premature optimization para 100 usuarios
+
+    - name: "Serverless (AWS Lambda / Azure Functions)"
+      description: |
+        Cada funcao como Lambda, API Gateway para routing.
+        DynamoDB ou Aurora Serverless para dados.
+      rejected_because: |
+        - Cold start problematico para latencia <30s
+        - Complexidade de orquestracao para jobs de 5 minutos
+        - Custo pode ser maior para processamento constante
+        - Vendor lock-in significativo
+
+    - name: "Monolith tradicional (sem eventos)"
+      description: |
+        Tudo sincrono, sem filas, processamento inline.
+      rejected_because: |
+        - Alertas bloqueariam requests HTTP
+        - Sem resiliencia para falhas de notificacao
+        - Dificil escalar processamento de alertas
+        - Acoplamento forte entre todos os componentes
+
+  related_decisions:
+    - adr-001  # Alpha Vantage
+    - adr-002  # Freemium
+    - adr-003  # Metricas
+
+  phase: 2
+  author: system-architect
+  approvers: []
+
+  metadata:
+    complexity: high
+    reversible: true
+    cost_impact: |
+      MVP: ~$50-100/mes (container hosting + managed Redis/PostgreSQL)
+      Growth: ~$200-500/mes
+      Enterprise: ~$1000+/mes com Kubernetes
+    security_impact: "Neutro - seguranca igual a microservicos se bem implementado"
+    performance_impact: |
+      Positivo para MVP (menor latencia de rede interna).
+      Potencial bottleneck em escala alta (mitigavel com workers).
+
+  supersedes: null

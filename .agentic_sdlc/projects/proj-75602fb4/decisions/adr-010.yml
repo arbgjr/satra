@@ -1,0 +1,102 @@
+decision:
+  id: adr-010
+  type: technical
+  title: "Azure como Cloud Provider principal"
+  created_at: '2026-01-17T16:14:55Z'
+  status: accepted
+
+  context: |
+    O Sistema de Alertas B3 precisa de um cloud provider para:
+    - Hosting de containers
+    - Banco de dados gerenciado
+    - Cache gerenciado
+    - Secrets management
+    - Monitoring e logs
+
+    Criterios de avaliacao:
+    - Custo para workload pequeno
+    - Integracao com .NET
+    - Presenca no Brasil (latencia)
+    - Facilidade de operacao
+
+  decision: |
+    Usar Microsoft Azure como cloud provider principal:
+
+    1. **Compute**: Azure Container Apps
+       - Serverless containers
+       - Scale to zero
+       - Preco por consumo
+
+    2. **Database**: Azure Database for PostgreSQL - Flexible Server
+       - Burstable tier para custo baixo
+       - Backup automatico
+       - HA opcional
+
+    3. **Cache**: Azure Cache for Redis
+       - Tier Basic para MVP
+       - Upgrade para Standard se precisar HA
+
+    4. **Secrets**: Azure Key Vault
+       - Managed identities
+       - Rotation automatico
+
+    5. **Monitoring**: Azure Monitor + Application Insights
+       - Integrado com Container Apps
+       - Distributed tracing
+
+    6. **Region**: Brazil South (Sao Paulo)
+       - Menor latencia para usuarios brasileiros
+       - Compliance LGPD
+
+  consequences:
+    positive:
+      - "Container Apps: serverless, scale to zero, custo baixo"
+      - "Excelente integracao com .NET"
+      - "Brazil South region (baixa latencia)"
+      - "Managed identities para seguranca"
+      - "Free tier para varios servicos"
+      - "Terraform provider maduro"
+
+    negative:
+      - "Vendor lock-in (mitigavel com containers)"
+      - "Alguns servicos mais caros que AWS"
+      - "Container Apps ainda em evolucao"
+
+    risks:
+      - risk: "Container Apps pode ter limitacoes nao previstas"
+        probability: low
+        mitigation: "Migrar para AKS se necessario"
+
+  alternatives:
+    - name: "AWS (App Runner + RDS + ElastiCache)"
+      description: "Equivalente da AWS"
+      rejected_because: |
+        - Integracao com .NET menos nativa
+        - App Runner menos flexivel que Container Apps
+        - Preco similar
+
+    - name: "GCP (Cloud Run + Cloud SQL)"
+      description: "Opcao Google Cloud"
+      rejected_because: |
+        - Sem regiao no Brasil
+        - Menos familiar para o time
+        - Free tier mais restrito
+
+    - name: "On-premise / VPS (DigitalOcean, Hetzner)"
+      description: "Servidores gerenciados manualmente"
+      rejected_because: |
+        - Overhead operacional alto
+        - Sem managed database/cache
+        - Backup e HA manuais
+
+  phase: 2
+  author: iac-engineer
+  approvers: []
+
+  metadata:
+    complexity: medium
+    reversible: true
+    cost_impact: "~$100-150/mes para MVP"
+    vendor_lock_in: "Medio - containers sao portaveis"
+
+  supersedes: null

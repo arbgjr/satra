@@ -1,0 +1,95 @@
+decision:
+  id: adr-007
+  type: technical
+  title: "PostgreSQL 16 como banco de dados principal"
+  created_at: '2026-01-17T15:55:44Z'
+  status: accepted
+
+  context: |
+    O sistema precisa armazenar:
+    - Usuarios e preferencias
+    - Configuracoes de alertas
+    - Historico de alertas disparados
+    - Dados de mercado (OHLC) e metricas calculadas
+    - Watchlists
+
+    Requisitos:
+    - ACID para consistencia
+    - Suporte a JSON para dados semi-estruturados
+    - Performance para queries de metricas
+    - Backup e recovery confiaveis
+    - Custo-beneficio para MVP
+
+  decision: |
+    Usar PostgreSQL 16 como banco de dados principal:
+
+    - Shared Infrastructure (~/.local/services/)
+    - Entity Framework Core como ORM
+    - PgBouncer para connection pooling
+    - Partitioning para tabelas de historico
+
+    Deployment:
+    - Local: Docker via shared services
+    - Producao: Azure Database for PostgreSQL Flexible Server
+
+    Features utilizadas:
+    - JSONB para preferencias de usuario
+    - Indexes parciais para queries frequentes
+    - Materialized views para agregacoes
+    - pg_stat_statements para monitoring
+
+  consequences:
+    positive:
+      - "ACID compliance para dados criticos"
+      - "JSONB excelente para dados semi-estruturados"
+      - "Ecossistema maduro e bem documentado"
+      - "Managed offerings em todos os cloud providers"
+      - "Extensivel (TimescaleDB se precisar time-series)"
+      - "Open source, sem vendor lock-in"
+      - "PgBouncer reduz overhead de conexoes"
+
+    negative:
+      - "Nao otimizado para time-series (ok para MVP)"
+      - "Requer tuning para performance otima"
+      - "Backup e restore mais complexos que managed services"
+
+    risks:
+      - risk: "Performance degradada com volume alto de dados de mercado"
+        probability: low
+        mitigation: |
+          Partitioning por data para tabelas de historico.
+          Migrar para TimescaleDB (extensao) se necessario.
+
+  alternatives:
+    - name: "MongoDB"
+      description: "Document database"
+      rejected_because: |
+        - Menos adequado para dados relacionais (users, alerts)
+        - ACID transactions mais limitadas
+        - Custo de managed service maior
+
+    - name: "TimescaleDB"
+      description: "PostgreSQL + time-series extension"
+      rejected_because: |
+        - Overhead de complexidade para MVP
+        - Pode adicionar depois como extensao
+        - Volume de dados MVP nao justifica
+
+    - name: "MySQL"
+      description: "Alternativa relacional"
+      rejected_because: |
+        - JSONB menos poderoso que PostgreSQL
+        - Extensibilidade menor
+        - PostgreSQL mais moderno
+
+  phase: 2
+  author: data-architect
+  approvers: []
+
+  metadata:
+    complexity: low
+    reversible: false
+    cost_impact: "~$15-25/mes para managed service"
+    performance_impact: "Positivo - banco maduro e otimizado"
+
+  supersedes: null

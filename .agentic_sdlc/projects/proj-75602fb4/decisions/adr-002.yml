@@ -1,0 +1,74 @@
+decision:
+  id: adr-002
+  type: architectural
+  title: "Modelo Freemium com ATR + Desvio Padrão no tier gratuito"
+  created_at: '2026-01-17T03:50:00Z'
+  status: accepted
+
+  context: |
+    O sistema precisa de um modelo de negócio sustentável que atraia usuários
+    e permita monetização futura.
+
+    Opções avaliadas:
+    - Assinatura mensal pura - barreira de entrada alta
+    - Free com ads - experiência ruim para usuários
+    - Freemium - tier gratuito atrai, tier pago monetiza
+
+  decision: |
+    Implementar modelo Freemium com duas camadas:
+
+    Tier Gratuito:
+    - ATR (Average True Range, 14 períodos)
+    - Desvio Padrão Histórico (30 dias)
+    - Alertas básicos (email)
+    - Limite de 5 ativos monitorados
+
+    Tier Premium (pago):
+    - Bollinger Bands com squeeze detection
+    - Beta vs Ibovespa
+    - Alertas multi-canal (push, SMS, Telegram)
+    - Ativos ilimitados
+    - Multi-timeframe (5min, 1h, diário)
+    - Histórico de alertas estendido
+
+  consequences:
+    positive:
+      - "Barreira de entrada zero atrai early adopters"
+      - "Tier gratuito demonstra valor antes de pagar"
+      - "ATR e Desvio Padrão são úteis para investidores iniciantes"
+      - "Clear upgrade path para tier premium"
+      - "Métricas do tier gratuito são simples de calcular"
+
+    negative:
+      - "Custos de infraestrutura para usuários gratuitos"
+      - "Conversão free->paid pode ser baixa (~2-5%)"
+      - "Suporte para usuários gratuitos consome recursos"
+
+    risks:
+      - "Custo de infraestrutura pode exceder receita inicial"
+      - "Tier gratuito pode ser 'bom demais', reduzindo conversão"
+      - "Concorrência pode oferecer mais features gratuitamente"
+
+    mitigations:
+      - "Limitar tier gratuito a 5 ativos para controlar custos"
+      - "Implementar rate limiting agressivo para free tier"
+      - "Monitorar métricas de conversão e ajustar features"
+      - "Considerar time-limited trials para features premium"
+
+  related_decisions:
+    - adr-001
+    - adr-003
+
+  phase: 0
+  author: claude
+  approvers:
+    - arbgjr
+
+  metadata:
+    complexity: medium
+    reversible: false
+    cost_impact: "modelo de negócio define viabilidade financeira"
+    tags:
+      - business-model
+      - freemium
+      - monetization
