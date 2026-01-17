@@ -1,0 +1,152 @@
+project:
+  id: proj-75602fb4
+  name: Sistema de Alertas B3
+  description: Sistema de alertas em tempo real para volatilidade de ativos da B3
+  created_at: '2026-01-17T03:38:16Z'
+  updated_at: '2026-01-17T20:15:00Z'
+
+  current_phase: 3
+  phase_status: ready_for_implementation
+  complexity_level: 2
+  status: active
+
+  github:
+    repository: arbgjr/satra
+    project_number: 7
+    project_url: https://github.com/users/arbgjr/projects/7
+    milestone_number: 1
+    milestone_url: https://github.com/arbgjr/satra/milestone/1
+    issues_created: 114
+    issues_url: https://github.com/arbgjr/satra/issues
+
+  team:
+    - name: Claude
+      role: AI Development Assistant
+    - name: arbgjr
+      role: Product Owner
+
+  metrics:
+    phase_durations:
+      phase_0: "4m31s"
+      phase_1: "~6m"
+      phase_2: "~30m"
+    decisions_count: 10
+    odrs_count: 0
+    learnings_count: 0
+    phase_start_time: '2026-01-17T04:10:00Z'
+    gates_passed: 2
+    gate_2_approved_by: arbgjr
+    gate_2_approved_at: '2026-01-17T04:10:00Z'
+
+    phase_1_metrics:
+      epics_created: 5
+      user_stories_created: 23
+      nfrs_defined: 17
+      edge_cases_identified: 21
+      acceptance_tests_defined: 24
+      estimated_story_points: 95
+      estimated_mvp_timeline: "6-8 semanas"
+
+    phase_2_metrics:
+      architecture_artifacts: 6
+      adrs_created: 7
+      threats_identified: 15
+      security_controls: 20
+      api_endpoints: 27
+      database_entities: 11
+      estimated_monthly_cost: "$100-150"
+
+    phase_3_metrics:
+      tasks_created: 114
+      github_issues_created: 114
+      sprints_planned: 7
+      milestones_defined: 8
+      releases_planned: 5
+      risks_identified: 15
+      dependencies_mapped: 50
+      estimated_duration_weeks: "11-12"
+      estimated_team_velocity: 50
+      labels_created: 52
+
+  key_decisions:
+    - adr-001: "Usar Alpha Vantage API como fonte de dados"
+    - adr-002: "Modelo Freemium com ATR + Desvio Padrão no tier gratuito"
+    - adr-003: "Priorização de métricas (ATR -> Desvio Padrão -> Bollinger -> Beta)"
+    - adr-004: "Arquitetura Event-Driven Modular Monolith"
+    - adr-005: ".NET 8 como plataforma de backend"
+    - adr-006: "Next.js 14 para frontend PWA"
+    - adr-007: "PostgreSQL 16 como banco principal"
+    - adr-008: "Redis 7 para cache e filas"
+    - adr-009: "Controles de seguranca baseados em STRIDE"
+    - adr-010: "Azure como Cloud Provider"
+
+  phase_1_artifacts:
+    - path: ".agentic_sdlc/projects/proj-75602fb4/requirements/epics.yml"
+      type: epics
+      items: 5
+    - path: ".agentic_sdlc/projects/proj-75602fb4/requirements/user-stories.yml"
+      type: user_stories
+      items: 23
+    - path: ".agentic_sdlc/projects/proj-75602fb4/requirements/non-functional-reqs.yml"
+      type: nfrs
+      items: 17
+    - path: ".agentic_sdlc/projects/proj-75602fb4/requirements/edge-cases.yml"
+      type: edge_cases
+      items: 21
+    - path: ".agentic_sdlc/projects/proj-75602fb4/requirements/acceptance-criteria.yml"
+      type: acceptance_criteria
+      items: 24
+
+  phase_2_artifacts:
+    - path: ".agentic_sdlc/projects/proj-75602fb4/architecture/high-level-architecture.yml"
+      type: architecture
+      description: "Event-Driven Modular Monolith"
+    - path: ".agentic_sdlc/projects/proj-75602fb4/architecture/c4-diagrams/"
+      type: diagrams
+      description: "C4 Model (Context, Container, Component)"
+    - path: ".agentic_sdlc/projects/proj-75602fb4/architecture/tech-stack.yml"
+      type: tech_stack
+      description: ".NET 8, Next.js 14, PostgreSQL 16, Redis 7, Azure"
+    - path: ".agentic_sdlc/projects/proj-75602fb4/architecture/data-model.yml"
+      type: data_model
+      description: "11 entidades, particionamento por data"
+    - path: ".agentic_sdlc/projects/proj-75602fb4/architecture/api-contracts/openapi.yml"
+      type: api_contract
+      description: "OpenAPI 3.0 com 27 endpoints"
+    - path: ".agentic_sdlc/projects/proj-75602fb4/architecture/infrastructure.yml"
+      type: infrastructure
+      description: "Azure Container Apps, CI/CD com GitHub Actions"
+    - path: ".agentic_sdlc/projects/proj-75602fb4/security/threat-model-stride.yml"
+      type: security
+      description: "15 ameacas identificadas via STRIDE"
+    - path: ".agentic_sdlc/projects/proj-75602fb4/security/security-controls.yml"
+      type: security
+      description: "20 controles de seguranca"
+
+  phase_3_artifacts:
+    - path: ".agentic_sdlc/projects/proj-75602fb4/planning/task-breakdown.yml"
+      type: task_breakdown
+      tasks: 127
+    - path: ".agentic_sdlc/projects/proj-75602fb4/planning/sprint-plan.yml"
+      type: sprint_plan
+      sprints: 7
+    - path: ".agentic_sdlc/projects/proj-75602fb4/planning/dependencies.yml"
+      type: dependencies
+      dependencies: 50
+    - path: ".agentic_sdlc/projects/proj-75602fb4/planning/roadmap.yml"
+      type: roadmap
+      milestones: 8
+    - path: ".agentic_sdlc/projects/proj-75602fb4/planning/risk-register.yml"
+      type: risk_register
+      risks: 15
+
+  tags:
+    - real-time
+    - alerts
+    - B3
+    - stock-market
+    - volatility
+    - event-driven
+    - dotnet
+    - nextjs
+    - azure
