@@ -1,0 +1,152 @@
+gate_result:
+  gate_name: preparation_to_discovery
+  from_phase: 0
+  to_phase: 1
+  evaluated_at: '2026-01-17T03:42:15Z'
+  evaluator: gate-evaluator
+
+  passed: true
+  score: 0.92
+  verdict: "APPROVED"
+
+  artifact_checks:
+    - artifact_type: intake_analysis
+      required: true
+      present: true
+      valid: true
+      path: .agentic_sdlc/projects/proj-75602fb4/intake-result.yml
+      validation_results:
+        has_classification: true
+        has_stakeholders: true
+        has_scope: true
+      issues: []
+
+    - artifact_type: compliance_checklist
+      required: true
+      present: true
+      valid: true
+      path: .agentic_sdlc/projects/proj-75602fb4/compliance-assessment.yml
+      validation_results:
+        has_verdict: true
+        verdict_value: "APPROVED_WITH_CONDITIONS"
+      issues:
+        - "Blockers identificados para fases futuras (nao bloqueantes para Phase 1)"
+
+    - artifact_type: phase_context
+      required: true
+      present: true
+      valid: true
+      path: .agentic_sdlc/projects/proj-75602fb4/phases/phase-0.yml
+      validation_results:
+        has_inputs: true
+        has_outputs: true
+        has_decisions: true
+      issues: []
+
+  quality_checks:
+    - name: scope_clarity
+      description: "Clareza do escopo definido"
+      threshold: 0.7
+      actual: 0.85
+      passed: true
+      evidence:
+        - "Escopo incluido e excluido documentado"
+        - "Problema e solucao descritos"
+        - "Open questions identificadas"
+
+    - name: stakeholder_identification
+      description: "Stakeholders identificados"
+      threshold: 1
+      actual: 3
+      passed: true
+      evidence:
+        - "Requester: arbgjr"
+        - "End users: Investidores, Traders, Gestores"
+        - "Stakeholders: Time de desenvolvimento"
+
+    - name: classification_completeness
+      description: "Classificacao completa"
+      threshold: 0.8
+      actual: 1.0
+      passed: true
+      evidence:
+        - "Tipo: feature"
+        - "Prioridade: medium"
+        - "Complexidade: 2 (Full SDLC)"
+        - "Risco: medium"
+
+    - name: compliance_assessment
+      description: "Avaliacao de compliance realizada"
+      threshold: 1
+      actual: 1
+      passed: true
+      evidence:
+        - "LGPD assessment: completo"
+        - "CVM assessment: completo"
+        - "B3 Terms: investigacao pendente (nao bloqueante para Phase 1)"
+
+  approval_checks:
+    - role: human_approval
+      required: false
+      approved: null
+      approver: null
+      note: "Gate 0->1 nao requer aprovacao humana"
+
+  blockers: []
+
+  warnings:
+    - type: open_question
+      description: "3 open questions bloqueantes identificadas"
+      severity: warning
+      note: "Devem ser resolvidas em Phase 1"
+
+    - type: compliance
+      description: "4 compliance blockers para fases futuras"
+      severity: warning
+      note: "Nao bloqueantes para Phase 1, serao verificados nos gates apropriados"
+
+  recommendations:
+    - "Priorizar resolucao das open questions bloqueantes em Phase 1"
+    - "Iniciar investigacao de provedores de dados de mercado"
+    - "Documentar decisoes sobre modelo de negocio"
+
+  can_proceed: true
+  human_approval_required: false
+  escalation_reason: null
+
+  transition_summary:
+    from_phase:
+      number: 0
+      name: "Intake & Analysis"
+      status: "completed"
+      duration: "~4 minutos"
+
+    to_phase:
+      number: 1
+      name: "Requirements Gathering"
+      status: "ready"
+      next_agents:
+        - domain-researcher
+        - doc-crawler
+        - rag-curator
+
+  artifacts_generated:
+    - path: .agentic_sdlc/projects/proj-75602fb4/intake-result.yml
+      type: intake_analysis
+      description: "Analise completa da demanda"
+
+    - path: .agentic_sdlc/projects/proj-75602fb4/compliance-assessment.yml
+      type: compliance_assessment
+      description: "Avaliacao de compliance LGPD/CVM/B3"
+
+    - path: .agentic_sdlc/projects/proj-75602fb4/phases/phase-0.yml
+      type: phase_context
+      description: "Contexto da Phase 0"
+
+  metrics:
+    artifacts_created: 3
+    decisions_made: 2
+    blockers_identified: 3
+    compliance_flags: 4
+    open_questions_blocking: 3
+    open_questions_non_blocking: 3
