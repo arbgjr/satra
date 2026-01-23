@@ -1,0 +1,708 @@
+volatility_research:
+  topic: "Métricas de Volatilidade para Sistema de Alertas B3"
+  date: "2026-01-17"
+  researcher: "domain-researcher"
+
+  executive_summary: |
+    Pesquisa sobre métricas de volatilidade para sistema de alertas em tempo real
+    para ativos da B3. Foram analisadas 6 métricas principais considerando facilidade
+    de cálculo, utilidade para traders, custo computacional e disponibilidade de dados
+    gratuitos. ATR e Desvio Padrão Histórico são recomendados para tier gratuito por
+    simplicidade e baixo custo computacional. Bollinger Bands e Beta são recomendados
+    para tier premium por fornecerem insights mais sofisticados.
+
+  metrics_analyzed:
+    - name: "ATR (Average True Range)"
+      description: |
+        Indicador de volatilidade desenvolvido por J. Welles Wilder que mede o
+        range médio entre máximas e mínimas em um período (tipicamente 14 períodos).
+        Cálculo: TR = max(high-low, |high-prev_close|, |low-prev_close|)
+        ATR = média móvel suavizada (SMMA) de TR.
+
+      pros:
+        - "Simples de calcular com dados OHLC (Open, High, Low, Close)"
+        - "Fornece valor numérico absoluto de volatilidade (ex: R$ 7.20)"
+        - "Ideal para definir stop-loss dinâmicos baseados em volatilidade"
+        - "Não requer dados de opções ou índices de mercado"
+        - "Aplicável a qualquer timeframe (intraday, diário, semanal)"
+        - "Amplamente usado em 2026 para gestão de risco"
+
+      cons:
+        - "Não indica direção de tendência, apenas magnitude de volatilidade"
+        - "Pode gerar falsos sinais em mercados de baixa liquidez"
+        - "Valores absolutos podem dificultar comparação entre ativos de preços diferentes"
+
+      complexity: low
+      data_requirements: "Apenas dados OHLC históricos (disponível gratuitamente)"
+      computation_cost: low
+      user_friendliness: high
+      recommended_for: ["free_tier", "premium"]
+
+      calculation_example: |
+        Para PETR4 em 17/01/2026:
+        - High: R$ 42.50, Low: R$ 41.80, Prev Close: R$ 42.00
+        - TR = max(42.50-41.80=0.70, |42.50-42.00|=0.50, |41.80-42.00|=0.20) = 0.70
+        - ATR(14) = média móvel dos últimos 14 TRs
+
+      sources:
+        - title: "The Average True Range Indicator and Volatility"
+          url: "https://www.schwab.com/learn/story/average-true-range-indicator-and-volatility"
+          type: "authoritative"
+        - title: "Average True Range (ATR)"
+          url: "https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/atr"
+          type: "official"
+
+    - name: "Bollinger Bands"
+      description: |
+        Desenvolvido por John Bollinger nos anos 1980, consiste em 3 bandas:
+        banda média (SMA 20 períodos), banda superior (+2 desvios padrão) e
+        banda inferior (-2 desvios padrão). As bandas se expandem em alta volatilidade
+        e contraem em baixa volatilidade.
+
+      pros:
+        - "Visualização intuitiva de volatilidade no gráfico de preços"
+        - "Identifica períodos de contração (squeeze) que antecedem movimentos fortes"
+        - "Útil para estratégias de reversão à média e breakouts"
+        - "Combina tendência e volatilidade em um único indicador"
+        - "Adequado para day trading em timeframes 15min-1h"
+
+      cons:
+        - "Mais complexo de calcular que ATR (requer desvio padrão)"
+        - "Requer escolha de parâmetros (período SMA e multiplicador σ)"
+        - "Pode gerar sinais falsos em mercados laterais"
+        - "Necessita de visualização gráfica para melhor interpretação"
+
+      complexity: medium
+      data_requirements: "Dados OHLC históricos + cálculo de desvio padrão"
+      computation_cost: medium
+      user_friendliness: high
+      recommended_for: ["premium"]
+
+      calculation_example: |
+        Bollinger Bands (20, 2):
+        - Banda Média = SMA(20) de preços de fechamento
+        - Desvio Padrão (σ) = raiz quadrada da variância dos últimos 20 fechamentos
+        - Banda Superior = SMA(20) + (2 × σ)
+        - Banda Inferior = SMA(20) - (2 × σ)
+
+        Interpretação:
+        - Bandas estreitas → baixa volatilidade → potencial breakout
+        - Bandas largas → alta volatilidade → potencial reversão
+
+      sources:
+        - title: "Bollinger Bands: What They Are and How to Use Them"
+          url: "https://www.schwab.com/learn/story/bollinger-bands-what-they-are-and-how-to-use-them"
+          type: "authoritative"
+        - title: "Bollinger Band Squeeze"
+          url: "https://chartschool.stockcharts.com/table-of-contents/trading-strategies-and-models/trading-strategies/bollinger-band-squeeze"
+          type: "reference"
+
+    - name: "Desvio Padrão Histórico (Historical Standard Deviation)"
+      description: |
+        Medida estatística de dispersão dos retornos de um ativo em relação à sua média.
+        Representa a volatilidade histórica realizada. Quanto maior o desvio padrão,
+        maior a variação de preços observada no período.
+
+      pros:
+        - "Métrica estatística padrão, amplamente compreendida"
+        - "Disponível oficialmente na B3 (Desvio-Padrão dos Ativos)"
+        - "Base para cálculo de Bollinger Bands e outras métricas"
+        - "Adequado para comparação de volatilidade entre diferentes ativos"
+        - "Fácil de anualizar para análises de longo prazo"
+
+      cons:
+        - "Assume distribuição normal de retornos (pode não ser realista)"
+        - "Sensível a outliers (eventos extremos distorcem a métrica)"
+        - "Não captura assimetria de movimentos (upside vs downside)"
+        - "Requer histórico suficiente de dados (mínimo 30 períodos)"
+
+      complexity: low
+      data_requirements: "Histórico de preços de fechamento"
+      computation_cost: low
+      user_friendliness: high
+      recommended_for: ["free_tier", "premium"]
+
+      calculation_example: |
+        Desvio Padrão de 30 dias:
+        1. Calcular retornos diários: r(t) = ln(P(t) / P(t-1))
+        2. Calcular média dos retornos: μ = (Σr) / n
+        3. Calcular variância: σ² = Σ(r - μ)² / (n-1)
+        4. Desvio padrão: σ = √σ²
+        5. Anualizar: σ_anual = σ_diário × √252 (dias úteis/ano)
+
+      sources:
+        - title: "Desvio-Padrão | B3"
+          url: "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/consultas/mercado-a-vista/volatilidades-dos-ativos/desvio-padrao/"
+          type: "official"
+        - title: "Avaliando a Volatilidade Diária dos Ativos"
+          url: "https://www.bcb.gov.br/pec/wps/port/wps297.pdf"
+          type: "academic"
+
+    - name: "Volatilidade Implícita (Implied Volatility)"
+      description: |
+        Volatilidade futura esperada pelo mercado, derivada dos preços de opções
+        usando o modelo Black-Scholes. Representa a expectativa do mercado sobre
+        oscilações futuras do ativo subjacente.
+
+      pros:
+        - "Forward-looking (olha para o futuro, não apenas histórico)"
+        - "Reflete expectativas do mercado sobre eventos futuros"
+        - "Útil para identificar opções sobre/subprecificadas"
+        - "Indicador de sentimento de mercado (medo/ganância)"
+
+      cons:
+        - "REQUER dados de opções (não disponível gratuitamente para todos ativos)"
+        - "Complexo de calcular (modelo Black-Scholes iterativo)"
+        - "Nem todos os ativos da B3 têm opções líquidas"
+        - "Alto custo computacional para cálculo em tempo real"
+        - "Depende de premissas do modelo (taxa livre de risco, etc.)"
+
+      complexity: high
+      data_requirements: "Preços de opções, taxa livre de risco, tempo até vencimento, strike"
+      computation_cost: high
+      user_friendliness: low
+      recommended_for: ["premium"]
+
+      calculation_example: |
+        Modelo Black-Scholes (simplificado):
+        C = S × N(d1) - K × e^(-r×T) × N(d2)
+
+        Onde:
+        - C = preço da call option (observado no mercado)
+        - S = preço spot do ativo
+        - K = strike price
+        - r = taxa livre de risco
+        - T = tempo até vencimento
+        - N(d) = distribuição normal cumulativa
+
+        Volatilidade Implícita (σ) é resolvida iterativamente até que
+        o preço teórico C iguale o preço de mercado observado.
+
+      notes: |
+        Para tier gratuito, volatilidade implícita é INVIÁVEL devido a:
+        1. Dados de opções não disponíveis em APIs gratuitas
+        2. Alta complexidade computacional
+        3. Necessidade de dados auxiliares (taxa de juros, etc.)
+
+      sources:
+        - title: "Compreendendo volatilidade implícita no mercado de opções"
+          url: "https://opcoespro.com.br/blog/entendendo-a-volatilidade-implicita-no-mercado-de-opcoes"
+          type: "educational"
+        - title: "Volatilidade Implícita - Opções"
+          url: "https://ajuda.nelogica.com.br/hc/pt-br/articles/11622763233563-Volatilidade-Implícita-Opções"
+          type: "reference"
+
+    - name: "Beta (β)"
+      description: |
+        Medida de risco sistemático que compara a volatilidade de um ativo em relação
+        ao mercado (normalmente Ibovespa). Indica quanto o ativo se move quando o
+        mercado se move 1%.
+        Fórmula: β = Cov(R_ativo, R_mercado) / Var(R_mercado)
+
+      pros:
+        - "Contextualiza volatilidade em relação ao mercado"
+        - "Útil para diversificação de portfólio"
+        - "Identifica ativos defensivos (β<1) vs agressivos (β>1)"
+        - "Componente do CAPM para cálculo de retorno esperado"
+
+      cons:
+        - "Requer dados do índice de mercado (Ibovespa)"
+        - "Assume correlação linear com mercado (pode não ser realista)"
+        - "Menos útil para day traders (foco é relativo, não absoluto)"
+        - "Beta varia ao longo do tempo, requer recálculo periódico"
+        - "Não útil para alertas de volatilidade intraday"
+
+      complexity: medium
+      data_requirements: "Histórico do ativo + histórico do Ibovespa"
+      computation_cost: medium
+      user_friendliness: medium
+      recommended_for: ["premium"]
+
+      calculation_example: |
+        Beta de PETR4 vs Ibovespa (60 dias):
+        1. Calcular retornos diários de PETR4 e Ibovespa
+        2. Calcular covariância: Cov(R_PETR4, R_IBOV)
+        3. Calcular variância: Var(R_IBOV)
+        4. β = Cov / Var
+
+        Interpretação:
+        - β = 1.5 → Se Ibovespa sobe 1%, PETR4 tende a subir 1.5%
+        - β = 0.5 → Se Ibovespa sobe 1%, ativo sobe apenas 0.5%
+        - β < 0 → Correlação negativa (raro, ex: ouro em crises)
+
+      notes: |
+        Beta é mais relevante para swing traders e investidores de longo prazo.
+        Para day traders focados em volatilidade intraday, ATR e Bollinger Bands
+        são métricas mais acionáveis.
+
+      sources:
+        - title: "Beta Coefficient - Definition, Formula, Calculation"
+          url: "https://corporatefinanceinstitute.com/resources/data-science/beta-coefficient/"
+          type: "authoritative"
+        - title: "What is Beta in Finance?"
+          url: "https://corporatefinanceinstitute.com/resources/valuation/what-is-beta-guide/"
+          type: "educational"
+
+    - name: "VIX-like Index (Índice de Volatilidade)"
+      description: |
+        Índice que mede a volatilidade implícita esperada do mercado, similar ao
+        VIX americano. No Brasil, existe o IVol-BR (Índice de Volatilidade Brasil)
+        calculado pela B3 baseado em opções do Ibovespa.
+
+      pros:
+        - "Medida de sentimento de mercado ('índice do medo')"
+        - "Útil para timing de mercado (alta volatilidade → oportunidades)"
+        - "Disponível como índice pronto da B3"
+
+      cons:
+        - "Específico para o mercado como um todo, não ativos individuais"
+        - "Não aplicável para alertas de ações individuais"
+        - "Menos útil para traders focados em ativos específicos"
+        - "Dados podem não estar disponíveis em APIs gratuitas"
+
+      complexity: high
+      data_requirements: "Índice IVol-BR da B3 ou cálculo baseado em opções"
+      computation_cost: high
+      user_friendliness: medium
+      recommended_for: []
+
+      notes: |
+        Para um sistema de alertas de ativos individuais da B3, um VIX-like index
+        não é apropriado. É mais relevante como indicador de mercado macro.
+        NÃO RECOMENDADO para este projeto específico.
+
+      sources:
+        - title: "Histórico de volatilidade implícita das opções B3"
+          url: "https://opcoes.net.br/historico/volatilidade-implicita"
+          type: "reference"
+
+  recommendations:
+    free_tier:
+      primary_metric: "ATR (Average True Range) - 14 períodos"
+      rationale: |
+        ATR é a escolha ideal para tier gratuito por 4 razões principais:
+
+        1. SIMPLICIDADE: Cálculo direto usando apenas dados OHLC, sem dependências
+           externas como opções ou índices de mercado.
+
+        2. DADOS GRATUITOS: Todas as APIs gratuitas (Alpha Vantage, BrAPI, Twelve Data)
+           fornecem dados OHLC necessários para cálculo de ATR.
+
+        3. ACIONÁVEL: Fornece valor numérico claro (ex: "PETR4 volatilidade de R$ 0.85/dia")
+           que usuários podem usar diretamente para definir stop-loss e sizing de posição.
+
+        4. BAIXO CUSTO COMPUTACIONAL: Processamento leve, adequado para cálculo em tempo
+           real de centenas de ativos simultaneamente.
+
+      secondary_metric: "Desvio Padrão Histórico - 30 dias"
+      secondary_rationale: |
+        Como métrica complementar, o desvio padrão histórico oferece:
+        - Comparabilidade entre ativos (pode ser normalizado como %)
+        - Dados oficiais disponíveis na B3
+        - Base estatística sólida e amplamente compreendida
+        - Pode ser anualizado para contexto de longo prazo
+
+      alert_strategy: |
+        Para tier gratuito, implementar alertas baseados em:
+
+        **Alerta de Alta Volatilidade:**
+        - Trigger: ATR atual > 150% da média de ATR dos últimos 20 dias
+        - Exemplo: "PETR4: Volatilidade elevada (ATR R$ 1.20 vs média R$ 0.80)"
+
+        **Alerta de Contração de Volatilidade:**
+        - Trigger: ATR atual < 50% da média de ATR dos últimos 20 dias
+        - Exemplo: "VALE3: Baixa volatilidade (ATR R$ 0.40 vs média R$ 0.85) - potencial breakout"
+
+    premium_tier:
+      metrics:
+        - name: "ATR (Advanced)"
+          features:
+            - "ATR em múltiplos timeframes (5min, 15min, 1h, diário)"
+            - "ATR percentual (ATRP) para comparação entre ativos"
+            - "Histórico de 1 ano de ATR para análise de tendências"
+
+        - name: "Bollinger Bands"
+          features:
+            - "Bollinger Bands com parâmetros customizáveis"
+            - "Detecção automática de Bollinger Squeeze"
+            - "Alertas de breakout acima/abaixo das bandas"
+            - "Bollinger %B (posição relativa do preço nas bandas)"
+
+        - name: "Beta vs Ibovespa"
+          features:
+            - "Beta rolling de 30, 60 e 90 dias"
+            - "Comparação de Beta entre setores"
+            - "Identificação de ativos defensivos/agressivos"
+
+        - name: "Desvio Padrão Avançado"
+          features:
+            - "Desvio padrão realizado vs projetado"
+            - "Comparação de volatilidade histórica entre períodos"
+            - "Rank de volatilidade (percentil histórico)"
+
+      rationale: |
+        Para usuários premium, oferecer métricas mais sofisticadas que fornecem:
+
+        1. CONTEXTO ADICIONAL: Bollinger Bands + ATR combinados identificam
+           squeeze + força de breakout.
+
+        2. ANÁLISE COMPARATIVA: Beta permite comparar volatilidade relativa
+           ao mercado e entre setores.
+
+        3. CUSTOMIZAÇÃO: Parâmetros ajustáveis para diferentes estilos de trading
+           (scalper, day trader, swing trader).
+
+        4. MÚLTIPLOS TIMEFRAMES: Análise de volatilidade em diferentes horizontes
+           temporais simultaneamente.
+
+      alert_strategy: |
+        Para tier premium, alertas avançados:
+
+        **Bollinger Squeeze Breakout:**
+        - Trigger: Bollinger Bandwidth < 10% + preço rompe banda superior/inferior
+        - "MGLU3: Squeeze breakout confirmado - volatilidade expandindo"
+
+        **Volatilidade Extrema Multi-Indicador:**
+        - Trigger: ATR > 150% média AND Beta > 1.5 AND Desvio Padrão > percentil 90
+        - "AMER3: Volatilidade extrema detectada em múltiplos indicadores"
+
+        **Reversão à Média:**
+        - Trigger: Preço > 2σ acima da Bollinger Band média + ATR decrescente
+        - "ITUB4: Sobrecompra + volatilidade declinando - potencial reversão"
+
+  implementation_priority:
+    - priority: 1
+      metric: "ATR (Average True Range)"
+      reason: |
+        DEVE SER IMPLEMENTADO PRIMEIRO por ser:
+        - A base do tier gratuito
+        - Mais simples tecnicamente
+        - Requer apenas dados OHLC (já necessários para outras features)
+        - Fornece valor imediato aos usuários
+
+      technical_notes: |
+        Implementação sugerida:
+        - Calcular ATR(14) para todos os ativos a cada minuto
+        - Armazenar histórico de 30 dias de ATR para comparação
+        - Cache in-memory para cálculos em tempo real
+        - Batch processing noturno para recalcular médias históricas
+
+      estimated_effort: "2-3 dias de desenvolvimento"
+
+    - priority: 2
+      metric: "Desvio Padrão Histórico"
+      reason: |
+        Segunda prioridade porque:
+        - Complementa ATR no tier gratuito
+        - Cálculo simples (pode reutilizar dados de ATR)
+        - Permite comparação normalizada entre ativos
+        - Dados oficiais da B3 podem ser usados para validação
+
+      technical_notes: |
+        Implementação sugerida:
+        - Calcular desvio padrão móvel de 30 dias
+        - Atualizar diariamente no fechamento do mercado
+        - Anualizar automaticamente para apresentação
+        - Fornecer rank percentual histórico (ex: "volatilidade no percentil 85")
+
+      estimated_effort: "1-2 dias de desenvolvimento"
+
+    - priority: 3
+      metric: "Bollinger Bands"
+      reason: |
+        Terceira prioridade para tier premium:
+        - Requer visualização gráfica para melhor usabilidade
+        - Depende de desvio padrão já implementado (prioridade 2)
+        - Adiciona valor significativo para day traders
+        - Permite implementar estratégia de Bollinger Squeeze
+
+      technical_notes: |
+        Implementação sugerida:
+        - Bollinger Bands (20, 2) como padrão, com customização premium
+        - Calcular Bollinger %B e Bandwidth
+        - Detector de squeeze: Bandwidth < threshold histórico
+        - API para retornar valores das 3 bandas + indicadores derivados
+
+      estimated_effort: "3-4 dias de desenvolvimento"
+
+    - priority: 4
+      metric: "Beta vs Ibovespa"
+      reason: |
+        Quarta prioridade:
+        - Feature exclusiva de tier premium
+        - Requer dados adicionais (Ibovespa intraday)
+        - Menor prioridade para day traders vs swing traders
+        - Pode ser desenvolvido incrementalmente
+
+      technical_notes: |
+        Implementação sugerida:
+        - Calcular Beta rolling de 60 dias (diário)
+        - Atualização diária no pós-mercado
+        - Armazenar histórico para análise de tendências
+        - Fornecer comparação setorial (beta médio do setor)
+
+      estimated_effort: "2-3 dias de desenvolvimento"
+
+    - priority: 5
+      metric: "Volatilidade Implícita"
+      reason: |
+        MENOR PRIORIDADE / OPCIONAL:
+        - Requer dados de opções (custo adicional de API)
+        - Alta complexidade de implementação
+        - Aplicável apenas a ativos com opções líquidas
+        - Pode ser desenvolvido no futuro se houver demanda
+
+      technical_notes: |
+        Implementação sugerida (SE implementado):
+        - Usar API paga de opções (ex: EODHD premium)
+        - Implementar solver numérico de Black-Scholes
+        - Limitar a top 20 ativos com opções mais líquidas
+        - Atualização a cada 15 minutos (não tempo real)
+
+      estimated_effort: "5-7 dias de desenvolvimento"
+      status: "Considerar apenas após validação de demanda do tier premium"
+
+  data_sources:
+    free_apis:
+      - name: "BrAPI"
+        url: "https://brapi.dev/"
+        coverage: "B3 (ações, FIIs, ETFs)"
+        rate_limit: "Varia (verificar documentação atual)"
+        real_time: false
+        delay: "15-20 minutos"
+        data_available: ["OHLCV", "informações fundamentalistas"]
+        volatility_metrics: []
+        notes: "API brasileira especializada em B3, boa para protótipo"
+
+      - name: "Alpha Vantage"
+        url: "https://www.alphavantage.co/"
+        coverage: "Global (inclui B3 via .SAO suffix)"
+        rate_limit: "5 calls/minuto, 500 calls/dia (free tier)"
+        real_time: false
+        delay: "15 minutos"
+        data_available: ["OHLCV", "50+ indicadores técnicos", "ATR", "Bollinger Bands pré-calculados"]
+        volatility_metrics: ["ATR", "Bollinger Bands", "SMA", "EMA"]
+        notes: "MELHOR OPÇÃO para free tier - ATR e Bollinger já calculados"
+
+      - name: "Twelve Data"
+        url: "https://twelvedata.com/"
+        coverage: "Global (inclui Brasil/B3)"
+        rate_limit: "8 calls/minuto, 800 calls/dia (free tier)"
+        real_time: false
+        delay: "Variable"
+        data_available: ["OHLCV", "indicadores técnicos"]
+        volatility_metrics: ["ATR", "Bollinger Bands", "Standard Deviation"]
+        notes: "Boa alternativa, cobertura de mercados emergentes"
+
+      - name: "Finnhub"
+        url: "https://finnhub.io/"
+        coverage: "Global"
+        rate_limit: "60 calls/minuto (free tier)"
+        real_time: false
+        data_available: ["OHLCV", "fundamentals", "economic data"]
+        volatility_metrics: []
+        notes: "Mais focado em fundamentals, limitado para volatilidade"
+
+    paid_apis_future:
+      - name: "LSEG B3 Data"
+        url: "https://www.lseg.com/en/data-analytics/financial-data/pricing-and-market-data/equities-market-data/b3-data"
+        notes: "Dados oficiais B3 via London Stock Exchange Group - considerar para versão enterprise"
+
+      - name: "EODHD (End of Day Historical Data)"
+        url: "https://eodhd.com/"
+        notes: "Dados históricos + opções - necessário para volatilidade implícita"
+
+    official_b3:
+      - name: "B3 - Desvio Padrão"
+        url: "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/consultas/mercado-a-vista/volatilidades-dos-ativos/desvio-padrao/"
+        availability: "Público via site"
+        format: "HTML (scraping necessário) ou API paga"
+        notes: "Dados oficiais de desvio padrão - usar para validação"
+
+  technical_considerations:
+    computation:
+      atr:
+        cpu_cost: "O(n) por ativo, onde n = período de lookback (14)"
+        memory: "Mínimo - apenas últimos 14 períodos em memória"
+        scalability: "Excelente - pode processar 100+ ativos em <100ms"
+
+      bollinger_bands:
+        cpu_cost: "O(n) para SMA + O(n) para desvio padrão = O(2n)"
+        memory: "Médio - últimos 20 períodos + desvio padrão rolling"
+        scalability: "Bom - pode processar 100+ ativos em <200ms"
+
+      beta:
+        cpu_cost: "O(n×m) onde n = períodos do ativo, m = períodos do índice"
+        memory: "Médio - histórico de 60+ dias de ativo + índice"
+        scalability: "Moderado - cálculo diário preferível a intraday"
+
+      implied_volatility:
+        cpu_cost: "O(n×i) onde n = opções, i = iterações do solver (10-20)"
+        memory: "Alto - requer dados de múltiplas opções + parâmetros"
+        scalability: "Baixo - limitado a poucos ativos"
+
+    storage:
+      time_series_data:
+        format: "TimescaleDB ou InfluxDB (otimizado para séries temporais)"
+        retention: |
+          - OHLC raw: 1 ano
+          - ATR calculado: 90 dias
+          - Bollinger Bands: 90 dias
+          - Beta: 6 meses
+        compression: "Compressão nativa de time-series DB (5-10x)"
+
+      cache_strategy:
+        redis_structure: |
+          Key: "atr:PETR4:14:1m" → Value: {timestamp, atr_value, tr_current}
+          Key: "bb:VALE3:20:2:1h" → Value: {timestamp, upper, middle, lower, bandwidth}
+        ttl: "60 segundos para intraday, 1 dia para diário"
+
+    api_design:
+      endpoints:
+        - path: "/api/v1/volatility/{symbol}/atr"
+          params: "?period=14&interval=1m"
+          response: |
+            {
+              "symbol": "PETR4",
+              "atr": 0.85,
+              "atr_percent": 2.1,
+              "avg_atr_20d": 0.65,
+              "percentile": 75,
+              "timestamp": "2026-01-17T14:30:00Z"
+            }
+
+        - path: "/api/v1/volatility/{symbol}/bollinger"
+          params: "?period=20&std_dev=2&interval=1h"
+          response: |
+            {
+              "symbol": "VALE3",
+              "upper_band": 68.50,
+              "middle_band": 65.00,
+              "lower_band": 61.50,
+              "current_price": 66.80,
+              "percent_b": 0.76,
+              "bandwidth": 10.8,
+              "is_squeeze": false,
+              "timestamp": "2026-01-17T14:00:00Z"
+            }
+
+        - path: "/api/v1/volatility/{symbol}/beta"
+          params: "?index=IBOV&period=60"
+          response: |
+            {
+              "symbol": "MGLU3",
+              "beta": 1.45,
+              "r_squared": 0.72,
+              "index": "IBOV",
+              "period_days": 60,
+              "interpretation": "aggressive",
+              "timestamp": "2026-01-17T00:00:00Z"
+            }
+
+  user_education:
+    free_tier_messaging: |
+      Para usuários do tier gratuito, explicar em linguagem simples:
+
+      **ATR (Volatilidade Média):**
+      "O ATR mostra quanto, em reais, uma ação costuma variar por dia.
+      Exemplo: PETR4 com ATR de R$ 0.85 significa que em média a ação
+      oscila R$ 0.85 entre máxima e mínima diária."
+
+      **Desvio Padrão:**
+      "Mede o quanto o preço varia em relação à média. Quanto maior o
+      desvio padrão, mais 'nervosa' está a ação."
+
+      **Alertas:**
+      - 🔴 Alta Volatilidade: Atenção! Maior risco e oportunidade
+      - 🟢 Baixa Volatilidade: Mercado calmo, potencial de movimento forte em breve
+
+    premium_tier_messaging: |
+      Para usuários premium, fornecer insights avançados:
+
+      **Bollinger Squeeze:**
+      "Quando as bandas se estreitam muito, historicamente seguem-se
+      movimentos fortes. Não sabemos a direção, mas sabemos que vem aí."
+
+      **Beta:**
+      "Beta de 1.5 significa que se o Ibovespa subir 1%, esta ação tende
+      a subir 1.5%. Útil para entender risco em relação ao mercado."
+
+      **Múltiplos Timeframes:**
+      "Análise simultânea de volatilidade em 5min, 1h e diário identifica
+      padrões que um único timeframe pode perder."
+
+  knowledge_gaps:
+    - "Qual a latência real das APIs gratuitas para dados da B3 em 2026?"
+    - "Alpha Vantage free tier suporta suficiente rate limit para 50+ ativos em tempo real?"
+    - "Qual o custo exato de dados de opções da B3 para cálculo de vol implícita?"
+    - "Existe índice IVol-BR disponível gratuitamente ou apenas via B3 paga?"
+    - "Qual o threshold ideal de Bollinger Squeeze para ativos brasileiros (vs americanos)?"
+
+  next_steps:
+    - action: "Testar Alpha Vantage API com símbolos B3 (.SAO suffix)"
+      owner: "backend-dev"
+      priority: "high"
+      estimated_time: "4 horas"
+
+    - action: "Implementar cálculo de ATR(14) para single asset (POC)"
+      owner: "backend-dev"
+      priority: "high"
+      estimated_time: "8 horas"
+
+    - action: "Definir thresholds de alertas (percentis históricos)"
+      owner: "data-analyst"
+      priority: "medium"
+      estimated_time: "1 dia"
+
+    - action: "Validar cálculos contra dados oficiais da B3"
+      owner: "qa"
+      priority: "high"
+      estimated_time: "1 dia"
+
+    - action: "Projetar schema TimescaleDB para time-series de volatilidade"
+      owner: "backend-dev"
+      priority: "medium"
+      estimated_time: "4 horas"
+
+    - action: "Criar wireframes de alertas de volatilidade (mobile + web)"
+      owner: "product-designer"
+      priority: "medium"
+      estimated_time: "1 dia"
+
+  references:
+    academic:
+      - title: "Avaliando a Volatilidade Diária dos Ativos"
+        url: "https://www.bcb.gov.br/pec/wps/port/wps297.pdf"
+        type: "working_paper"
+        institution: "Banco Central do Brasil"
+
+      - title: "Cálculo da volatilidade implícita sem o uso de modelos de precificação"
+        url: "http://s3.amazonaws.com/public-cdn.ibmec.br/portalibmec-content/public/arquivos/df/dis_2013_1_-_ana_luisa_de_souza_villas_boas_gomes.pdf"
+        type: "dissertation"
+        institution: "IBMEC"
+
+    industry:
+      - title: "ATR vs Bollinger Bands: Unlocking the Secrets of Market Volatility"
+        url: "https://algogene.com/community/post/310"
+        type: "comparative_analysis"
+
+      - title: "Volatility Analysis: Combining Bollinger Bands® and Average True Ranges"
+        url: "https://www.traderslog.com/volatility-analysis"
+        type: "strategy_guide"
+
+    official:
+      - title: "B3 - Desvio Padrão"
+        url: "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/consultas/mercado-a-vista/volatilidades-dos-ativos/desvio-padrao/"
+        type: "exchange_official"
+
+      - title: "Histórico de volatilidade implícita das opções B3"
+        url: "https://opcoes.net.br/historico/volatilidade-implicita"
+        type: "market_data"
+
+corpus_additions:
+  - type: "research_brief"
+    title: "Volatility Metrics for B3 Real-Time Alert System"
+    content: "Comprehensive analysis of 6 volatility metrics with implementation recommendations"
+    tags: ["volatility", "B3", "trading", "metrics", "ATR", "Bollinger Bands"]
+    phase: 1
+    project_id: "proj-75602fb4"
