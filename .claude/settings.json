@@ -1,9 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "version": "1.0",
-  "project": {
-    "name": "mice_dolphins",
-    "description": "SDLC Agentico - Sistema de desenvolvimento de software orientado por agentes"
+  "permissions": {
+    "allow": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
   },
   "hooks": {
     "PreToolUse": [
@@ -120,6 +121,33 @@
             "command": ".claude/hooks/detect-adr-need.sh"
           }
         ]
+      },
+      {
+        "matcher": "Write(.agentic_sdlc/projects/*/planning/task-breakdown.yml)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/phase-commit-reminder.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(.agentic_sdlc/projects/*/decisions/adr-*.yml)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/phase-commit-reminder.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(.agentic_sdlc/projects/*/specs/*.spec.md)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/phase-commit-reminder.sh"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -144,6 +172,11 @@
         ]
       }
     ]
+  },
+  "version": "1.0",
+  "project": {
+    "name": "sdlc_agentico",
+    "description": "SDLC Agentico - Sistema de desenvolvimento de software orientado por agentes"
   },
   "agents": {
     "default_model": "sonnet",
@@ -370,7 +403,7 @@
         "phase-6-to-7"
       ],
       "escalation_triggers": {
-        "cvss_threshold": 7.0,
+        "cvss_threshold": 7,
         "pii_exposure": true,
         "auth_modification": true,
         "crypto_change": true,
